@@ -1,0 +1,3 @@
+# Product context
+
+Mobile SLAM is a classroom teaching aid for university students learning computer vision and robotics. It makes monocular visual-SLAM inputs, intermediate results, state, and limitations observable rather than hiding them behind a finished pose estimate. In class, students should be able to move a phone through a scene, inspect detected image features alongside camera and inertial data, and later compare those observations with tracking, mapping, and replay stages. Success means a clear, runnable Android app that explains the pipeline honestly, including arbitrary monocular scale, pure-rotation failure, and low-texture failure.
