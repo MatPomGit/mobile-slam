@@ -219,8 +219,7 @@ private fun LiveSlamScreen() {
                 }
             }
 
-            val layoutListener = View.OnLayoutChangeListener { _, left, top, right, bottom,
-                oldLeft, oldTop, oldRight, oldBottom ->
+            val layoutListener = View.OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
                 if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
                     bindCamera()
                 }
@@ -343,13 +342,9 @@ private fun LiveSlamScreen() {
     }
 }
 
-private fun List<Float>.asVector(): String =
-    joinToString(prefix = "(", postfix = ")") { "%.2f".format(java.util.Locale.US, it) }
+private fun List<Float>.asVector(): String = joinToString(prefix = "(", postfix = ")") { "%.2f".format(java.util.Locale.US, it) }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFeaturePoints(
-    frame: FrameKeypoints,
-    canvasSize: IntSize,
-) {
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFeaturePoints(frame: FrameKeypoints, canvasSize: IntSize) {
     frame.points.forEach { point ->
         val mapped = PreviewCoordinates.project(
             point = point,
