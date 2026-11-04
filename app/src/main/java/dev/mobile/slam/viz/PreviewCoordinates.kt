@@ -8,13 +8,7 @@ import dev.mobile.slam.sensors.FrameCrop
  * the matching FILL_CENTER PreviewView. Preview and analysis must share a UseCaseGroup ViewPort.
  */
 internal object PreviewCoordinates {
-    fun project(
-        point: FeaturePoint,
-        crop: FrameCrop,
-        rotationDegrees: Int,
-        previewWidth: Int,
-        previewHeight: Int,
-    ): FeaturePoint? {
+    fun project(point: FeaturePoint, crop: FrameCrop, rotationDegrees: Int, previewWidth: Int, previewHeight: Int): FeaturePoint? {
         val width = crop.right - crop.left
         val height = crop.bottom - crop.top
         if (width <= 0 || height <= 0 || previewWidth <= 0 || previewHeight <= 0) return null
