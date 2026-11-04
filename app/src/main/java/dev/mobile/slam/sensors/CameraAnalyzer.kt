@@ -95,14 +95,14 @@ internal class CameraAnalyzer(
     }
 
     private fun errorFrame(image: ImageProxy, crop: FrameCrop, error: String) = FrameKeypoints(
-            width = image.width,
-            height = image.height,
-            rotationDegrees = image.imageInfo.rotationDegrees,
-            crop = crop,
-            timestampNs = image.imageInfo.timestamp,
-            points = emptyList(),
-            error = error,
-        )
+        width = image.width,
+        height = image.height,
+        rotationDegrees = image.imageInfo.rotationDegrees,
+        crop = crop,
+        timestampNs = image.imageInfo.timestamp,
+        points = emptyList(),
+        error = error,
+    )
 
     private fun publish(frame: FrameKeypoints) {
         callbackExecutor.execute { onFrame(frame) }
