@@ -3,6 +3,7 @@ package dev.mobile.slam
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -10,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -21,9 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -46,15 +46,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mobile.slam.calib.CameraIntrinsics
+import dev.mobile.slam.frontend.Settings
 import dev.mobile.slam.sensors.CameraAnalyzer
 import dev.mobile.slam.sensors.FrameKeypoints
 import dev.mobile.slam.sensors.ImuSample
 import dev.mobile.slam.sensors.ImuSource
+import dev.mobile.slam.viz.PreviewCoordinates
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.max
 
 /**
  * Hosts the student-facing camera and sensor demonstration for the first SLAM milestone.
@@ -113,6 +116,7 @@ private fun SlamScreen() {
 private fun LiveSlamScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val settings = remember { Settings() }
     val intrinsics = remember { CameraIntrinsics.default640x480() }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var keypointFrame by remember { mutableStateOf<FrameKeypoints?>(null) }
@@ -121,9 +125,28 @@ private fun LiveSlamScreen() {
     var cameraError by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(lifecycleOwner) {
-        val imuSource = ImuSource(context) { sample -> imuSample = sample }
-        imuAvailable = imuSource.start()
-        onDispose { imuSource.stop() }
+        val imuSource = ImuSource(context, settings.imuHudIntervalMs * 1_000_000L) { sample ->
+            imuSample = sample
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> imuAvailable = imuSource.start()
+                Lifecycle.Event.ON_STOP -> {
+                    imuSource.stop()
+                    imuAvailable = false
+                    imuSample = null
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            imuAvailable = imuSource.start()
+        }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            imuSource.stop()
+        }
     }
 
     DisposableEffect(lifecycleOwner, previewView) {
@@ -135,52 +158,96 @@ private fun LiveSlamScreen() {
             val analyzerExecutor = Executors.newSingleThreadExecutor()
             val disposed = AtomicBoolean(false)
             val analyzer = CameraAnalyzer(
-                settings = dev.mobile.slam.frontend.Settings(),
+                settings = settings,
                 callbackExecutor = ContextCompat.getMainExecutor(context),
             ) { frame ->
-                keypointFrame = frame
-                cameraError = frame.error
-            }
-            var cameraProvider: ProcessCameraProvider? = null
-            val listener = Runnable {
                 if (!disposed.get()) {
-                    try {
-                        val provider = cameraProviderFuture.get()
-                        cameraProvider = provider
-                        val resolutionSelector = ResolutionSelector.Builder()
-                            .setResolutionStrategy(
-                                ResolutionStrategy(
-                                    android.util.Size(640, 480),
-                                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
-                                ),
-                            )
-                            .build()
-                        val preview = Preview.Builder()
-                            .setResolutionSelector(resolutionSelector)
-                            .build()
-                            .also { it.setSurfaceProvider(view.surfaceProvider) }
-                        val analysis = ImageAnalysis.Builder()
-                            .setResolutionSelector(resolutionSelector)
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                            .build()
-                            .also { it.setAnalyzer(analyzerExecutor, analyzer) }
-                        provider.unbindAll()
-                        provider.bindToLifecycle(
-                            lifecycleOwner,
-                            CameraSelector.DEFAULT_BACK_CAMERA,
-                            preview,
-                            analysis,
-                        )
-                    } catch (_: Exception) {
-                        cameraError = "Nie udało się uruchomić kamery."
-                    }
+                    keypointFrame = frame
+                    cameraError = frame.error
                 }
             }
-            cameraProviderFuture.addListener(listener, ContextCompat.getMainExecutor(context))
+            var cameraProvider: ProcessCameraProvider? = null
+            var boundPreview: Preview? = null
+            var boundAnalysis: ImageAnalysis? = null
+            var boundWidth = 0
+            var boundHeight = 0
+
+            fun bindCamera() {
+                val provider = cameraProvider ?: return
+                if (disposed.get() || view.width <= 0 || view.height <= 0) return
+                if (view.width == boundWidth && view.height == boundHeight) return
+                val viewPort = view.viewPort ?: return
+                try {
+                    val resolutionSelector = ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            ResolutionStrategy(
+                                android.util.Size(640, 480),
+                                ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                            ),
+                        )
+                        .build()
+                    val preview = Preview.Builder()
+                        .setResolutionSelector(resolutionSelector)
+                        .build()
+                        .also { it.setSurfaceProvider(view.surfaceProvider) }
+                    val analysis = ImageAnalysis.Builder()
+                        .setResolutionSelector(resolutionSelector)
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { it.setAnalyzer(analyzerExecutor, analyzer) }
+                    val useCases = UseCaseGroup.Builder()
+                        .addUseCase(preview)
+                        .addUseCase(analysis)
+                        .setViewPort(viewPort)
+                        .build()
+                    if (boundPreview != null && boundAnalysis != null) {
+                        provider.unbind(boundPreview, boundAnalysis)
+                    }
+                    provider.bindToLifecycle(
+                        lifecycleOwner,
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        useCases,
+                    )
+                    boundPreview = preview
+                    boundAnalysis = analysis
+                    boundWidth = view.width
+                    boundHeight = view.height
+                    keypointFrame = null
+                    cameraError = null
+                } catch (_: Exception) {
+                    cameraError = "Nie udało się uruchomić kamery."
+                }
+            }
+
+            val layoutListener = View.OnLayoutChangeListener { _, left, top, right, bottom,
+                oldLeft, oldTop, oldRight, oldBottom ->
+                if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                    bindCamera()
+                }
+            }
+            view.addOnLayoutChangeListener(layoutListener)
+            cameraProviderFuture.addListener(
+                {
+                    if (!disposed.get()) {
+                        try {
+                            cameraProvider = cameraProviderFuture.get()
+                            bindCamera()
+                        } catch (_: Exception) {
+                            cameraError = "Nie udało się uzyskać dostępu do kamery."
+                        }
+                    }
+                },
+                ContextCompat.getMainExecutor(context),
+            )
 
             onDispose {
                 disposed.set(true)
-                cameraProvider?.unbindAll()
+                view.removeOnLayoutChangeListener(layoutListener)
+                val preview = boundPreview
+                val analysis = boundAnalysis
+                if (preview != null && analysis != null) {
+                    cameraProvider?.unbind(preview, analysis)
+                }
                 analyzerExecutor.shutdown()
             }
         }
@@ -208,10 +275,14 @@ private fun LiveSlamScreen() {
         ) {
             AndroidView(
                 factory = { viewContext ->
-                    PreviewView(viewContext).also { previewView = it }
+                    PreviewView(viewContext).also {
+                        // TextureView is composited reliably below the Compose Canvas overlay.
+                        it.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        it.scaleType = PreviewView.ScaleType.FILL_CENTER
+                        previewView = it
+                    }
                 },
                 modifier = Modifier.fillMaxSize(),
-                update = { previewView = it },
             )
             keypointFrame?.let { frame ->
                 Canvas(modifier = Modifier.matchParentSize()) {
@@ -254,8 +325,9 @@ private fun LiveSlamScreen() {
                     } else {
                         "n/d"
                     }
-                    "IMU: a=$acceleration m/s² · ω=$angularVelocity rad/s · t=${sample.timestampNs} ns"
-                } ?: "IMU: ${if (imuAvailable) "czujnik dostępny" else "brak czujników"}",
+                    "IMU: a=$acceleration m/s² · ω=$angularVelocity rad/s · " +
+                        "tA=${sample.accelerationTimestampNs} ns · tG=${sample.angularVelocityTimestampNs} ns"
+                } ?: "IMU: ${if (imuAvailable) "czujnik dostępny" else "brak aktywnych czujników"}",
                 color = Color.White,
                 fontSize = 12.sp,
             )
@@ -278,29 +350,18 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFeaturePoints(
     frame: FrameKeypoints,
     canvasSize: IntSize,
 ) {
-    if (frame.width <= 0 || frame.height <= 0) return
-
-    val rotation = frame.rotationDegrees.mod(360)
-    val rotatedWidth = if (rotation == 90 || rotation == 270) frame.height else frame.width
-    val rotatedHeight = if (rotation == 90 || rotation == 270) frame.width else frame.height
-    val scale = max(canvasSize.width.toFloat() / rotatedWidth, canvasSize.height.toFloat() / rotatedHeight)
-    val offsetX = (canvasSize.width - rotatedWidth * scale) / 2f
-    val offsetY = (canvasSize.height - rotatedHeight * scale) / 2f
-
     frame.points.forEach { point ->
-        val rotated = when (rotation) {
-            90 -> point.y.let { frame.height - it } to point.x
-            180 -> (frame.width - point.x) to (frame.height - point.y)
-            270 -> point.y to (frame.width - point.x)
-            else -> point.x to point.y
-        }
+        val mapped = PreviewCoordinates.project(
+            point = point,
+            crop = frame.crop,
+            rotationDegrees = frame.rotationDegrees,
+            previewWidth = canvasSize.width,
+            previewHeight = canvasSize.height,
+        ) ?: return@forEach
         drawCircle(
             color = Color(0xFF54F28B),
             radius = 3.dp.toPx(),
-            center = androidx.compose.ui.geometry.Offset(
-                x = offsetX + rotated.first * scale,
-                y = offsetY + rotated.second * scale,
-            ),
+            center = androidx.compose.ui.geometry.Offset(mapped.x, mapped.y),
             style = Stroke(width = 1.dp.toPx()),
         )
     }
