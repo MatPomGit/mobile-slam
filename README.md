@@ -8,7 +8,7 @@ An Android teaching app for making monocular visual-SLAM pipeline stages visible
 - Live use requires a rear camera and runtime camera permission. Missing accelerometer or gyroscope hardware does not prevent camera analysis.
 - The displayed intrinsics are a teaching estimate for a nominal 640×480 image, not measured device calibration. CameraX may choose a nearby supported resolution.
 - FAST points are detected independently in each frame; they are not yet tracked, matched, or classified as SLAM inliers.
-- Camera and sensor timestamps are exposed in nanoseconds from their Android monotonic timestamp sources; cross-device calibration and synchronization are not claimed.
+- Camera and sensor timestamps are exposed in nanoseconds as reported by Android; their clock alignment must be confirmed for each device before sensor fusion.
 
 ## Build and run
 

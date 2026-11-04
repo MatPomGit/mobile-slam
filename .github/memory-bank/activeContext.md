@@ -14,6 +14,7 @@
 - Added the Android app module, Gradle 8.10.2 wrapper, CameraX preview/ImageAnalysis, FAST keypoint extraction, sensor sampling, intrinsics defaults, and Compose HUD/overlay.
 - Added README build instructions, architecture diagram, classroom usage, and assumptions.
 - `git diff --check` passes. Assemble and unit-test tasks stop during Android Gradle Plugin resolution; DNS cannot resolve `dl.google.com`, and the Android SDK is absent from the task environment.
+- CodeQL reported that no changed languages were analyzable, so no CodeQL analysis ran.
 - No local unit-test infrastructure existed before the Android project was added; algorithm tests are planned for later milestones.
 
 ## Assumptions
