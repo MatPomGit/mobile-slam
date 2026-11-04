@@ -17,7 +17,7 @@ class PreviewCoordinatesTest {
                 0 to FeaturePoint(0f, 0f),
                 90 to FeaturePoint(300f, 0f),
                 180 to FeaturePoint(300f, 400f),
-                    270 to FeaturePoint(0f, 400f),
+                270 to FeaturePoint(0f, 400f),
             )
         expected.forEach { (rotation, target) ->
             val actual = PreviewCoordinates.project(origin, crop, rotation, 300, 400)!!
