@@ -15,10 +15,10 @@ class PreviewCoordinatesTest {
         val expected =
             mapOf(
                 0 to FeaturePoint(0f, 0f),
-            90 to FeaturePoint(300f, 0f),
-            180 to FeaturePoint(300f, 400f),
-            270 to FeaturePoint(0f, 400f),
-        )
+                90 to FeaturePoint(300f, 0f),
+                180 to FeaturePoint(300f, 400f),
+                    270 to FeaturePoint(0f, 400f),
+            )
         expected.forEach { (rotation, target) ->
             val actual = PreviewCoordinates.project(origin, crop, rotation, 300, 400)!!
             assertEquals("rotation $rotation x", target.x, actual.x, 0.001f)
