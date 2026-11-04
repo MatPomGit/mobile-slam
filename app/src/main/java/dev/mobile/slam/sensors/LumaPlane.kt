@@ -4,13 +4,7 @@ import java.nio.ByteBuffer
 
 /** Copies the unrotated Y plane, respecting row padding, pixel stride and buffer position. */
 internal object LumaPlane {
-    fun copy(
-        source: ByteBuffer,
-        width: Int,
-        height: Int,
-        rowStride: Int,
-        pixelStride: Int,
-    ): ByteArray {
+    fun copy(source: ByteBuffer, width: Int, height: Int, rowStride: Int, pixelStride: Int): ByteArray {
         require(width > 0 && height > 0 && rowStride > 0 && pixelStride > 0)
         val buffer = source.duplicate()
         val offset = buffer.position()
