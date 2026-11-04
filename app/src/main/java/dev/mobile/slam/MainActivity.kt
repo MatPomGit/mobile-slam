@@ -200,8 +200,10 @@ private fun LiveSlamScreen() {
                         .addUseCase(analysis)
                         .setViewPort(viewPort)
                         .build()
-                    if (boundPreview != null && boundAnalysis != null) {
-                        provider.unbind(boundPreview, boundAnalysis)
+                    val previousPreview = boundPreview
+                    val previousAnalysis = boundAnalysis
+                    if (previousPreview != null && previousAnalysis != null) {
+                        provider.unbind(previousPreview, previousAnalysis)
                     }
                     provider.bindToLifecycle(
                         lifecycleOwner,
