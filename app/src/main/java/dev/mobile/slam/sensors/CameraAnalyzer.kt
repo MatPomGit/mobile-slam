@@ -94,8 +94,7 @@ internal class CameraAnalyzer(
         }
     }
 
-    private fun errorFrame(image: ImageProxy, crop: FrameCrop, error: String) =
-        FrameKeypoints(
+    private fun errorFrame(image: ImageProxy, crop: FrameCrop, error: String) = FrameKeypoints(
             width = image.width,
             height = image.height,
             rotationDegrees = image.imageInfo.rotationDegrees,
