@@ -20,7 +20,7 @@ Android teaching app for making monocular visual-SLAM pipeline stages visible to
 Run local JVM tests with `./gradlew :app:testDebugUnitTest`.
 Run Android lint with `./gradlew :app:lintDebug`.
 Run Kotlin formatting checks with `./gradlew :app:ktlintCheck`.
-The `Android CI` workflow runs all four tasks on every PR and push to `main`; it does not replace a physical-device test.
+The `Android CI` workflow runs all four tasks on pull requests and pushes to `main` and `fix/**`. It uploads Gradle test/lint reports. A successful CI run confirms compilation and host-side tests, not physical-device camera behavior.
 
 ## Architecture
 

@@ -3,7 +3,7 @@
 ## Milestones
 
 - [x] Milestone 0 — Agent instructions and complete Memory Bank bootstrap.
-- [ ] Milestone 1 — CameraX + IMU, intrinsics and keypoint overlay. Stabilization submitted for CI and hardware verification.
+- [ ] Milestone 1 — CameraX + IMU, intrinsics and keypoint overlay. Android CI verified; physical-device acceptance remains.
 - [ ] Milestone 2 — KLT tracking, two-view initialization and point-cloud viewer.
 - [ ] Milestone 3 — PnP tracking, keyframes, map growth, trajectory and charts.
 - [ ] Milestone 4 — Step-by-step mode, session recording/replay and Settings.
@@ -19,4 +19,4 @@
 
 - 2026-11-04 — Initial project guidance, memory bank, CameraX/FAST/IMU HUD and intrinsics.
 - 2026-11-04 — First build verification blocked by missing Android SDK / Google Maven in task runner.
-- 2026-11-04 — Stabilization branch fixes Kotlin blockers, lifecycle/cropping, OpenCV initialization and Y-plane copies; adds sampling gate, JVM tests and Android CI. Verification pending.
+- 2026-11-04 — Stabilization branch fixes Kotlin blockers, lifecycle/cropping, OpenCV initialization and Y-plane copies; adds sampling gate, JVM tests and Android CI. Assemble, JVM tests, Android lint and ktlint passed in GitHub Actions #41813784899.

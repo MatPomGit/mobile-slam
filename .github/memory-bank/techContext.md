@@ -6,5 +6,5 @@
 - Android: minSdk 26, targetSdk 34, compileSdk 35, build tools 35.0.0.
 - Device: rear camera, optional accelerometer/gyroscope; CameraX PreviewView uses COMPATIBLE mode to draw Compose overlays above the preview.
 - Build/test: `./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck`. Use `./gradlew :app:ktlintFormat` only for explicit formatting fixes.
-- CI: `.github/workflows/android-ci.yml` installs Android SDK platform/build tools 35 and executes the verification tasks on PRs and main pushes.
+- CI: `.github/workflows/android-ci.yml` installs Android SDK platform/build tools 35, executes Gradle with `--continue` on PRs, `main` and `fix/**` pushes, and uploads lint/test reports. Run #41813784899 passed all checks on commit fb46d380.
 - Device acceptance: check permissions, orientation/crop overlay, background/foreground lifecycle and camera/IMU clock sources. No hardware acceptance evidence is recorded yet.

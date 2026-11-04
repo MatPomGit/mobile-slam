@@ -22,11 +22,12 @@
 - OpenCV is initialized once per analyzer; luma copying respects row padding/pixel stride.
 - IMU listener lifetime follows ON_START / ON_STOP; HUD cadence is limited to 100 ms and sensor timestamps are separate.
 - JVM geometry, pixel-copy and sampling tests added, alongside Android CI (assemble, unit tests, lint and ktlint).
-- CI execution and physical-device acceptance remain to be confirmed.
+- GitHub Actions run #41813784899 passed assembleDebug, testDebugUnitTest, lintDebug and ktlintCheck for commit fb46d380 on 2026-11-04.
+- Physical-device acceptance remains pending; CI does not exercise camera hardware.
 
 ## Next Step
 
-- Inspect GitHub Actions results for the PR and fix any build/lint/test failures.
+- Keep CI green on the PR head; use Android CI reports to diagnose future regressions.
 - Verify overlay registration, permission handling, sensor availability and lifecycle transitions on a physical Android device.
 
 ## Assumptions
