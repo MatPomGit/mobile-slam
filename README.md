@@ -20,7 +20,7 @@ Android teaching app for making monocular visual-SLAM pipeline stages visible to
 Run local JVM tests with `./gradlew :app:testDebugUnitTest`.
 Run Android lint with `./gradlew :app:lintDebug`.
 Run Kotlin formatting checks with `./gradlew :app:ktlintCheck`.
-The `Android CI` workflow runs all four tasks on pull requests and pushes to `main` and `fix/**`. It uploads Gradle test/lint reports. A successful CI run confirms compilation and host-side tests, not physical-device camera behavior.
+The `Android CI` workflow runs all four tasks on pull requests and pushes to `main` and `fix/**`. It uploads Gradle test/lint reports and a downloadable `mobile-slam-debug-apk` artifact. From a successful workflow run, download and extract the APK, then install with `adb install -r app-debug.apk` after enabling USB debugging on the test device.
 
 ## Architecture
 
@@ -51,7 +51,14 @@ JVM tests cover:
 - padded Y-plane rows and nonunit pixel strides;
 - the IMU HUD sampling gate and reset behavior.
 
-For device acceptance, verify camera permission, background/foreground transitions, screen rotation, overlay registration for multiple resolutions/aspect ratios, sensor availability, and sustained operation without leaks or preview stalls.
+For device acceptance:
+1. Grant and revoke camera permission, confirming the preview can start and recover.
+2. Rotate the device through 0°, 90°, 180°, and 270°; inspect FAST corner registration at more than one aspect ratio.
+3. Move the application to the background and back; confirm IMU sampling stops and restarts, and that the camera preview recovers.
+4. Test devices with both, one, or no inertial sensors when available; inspect sample availability and timestamps.
+5. Leave the camera active for several minutes, watching for preview stalls, crashes, or excessive thermal load.
+
+Record the device model, Android version, observed camera orientation and pass/fail for each test before marking Milestone 1 fully accepted.
 
 ## Known limitations
 
