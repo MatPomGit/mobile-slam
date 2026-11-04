@@ -1,8 +1,8 @@
 package dev.mobile.slam.sensors
 
-import java.nio.ByteBuffer
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
+import java.nio.ByteBuffer
 
 class LumaPlaneTest {
     @Test
