@@ -9,6 +9,10 @@
 - Test strategy: run `:app:assembleDebug` and `:app:testDebugUnitTest`, then perform static/whitespace checks. Report environment blockers without claiming an unverified build.
 - Acceptance: required guidance and Memory Bank are populated; the app requests camera access, analyzes grayscale frames with OpenCV FAST, samples available gyro/accelerometer data with nanosecond timestamps, and displays features and sample intrinsics in Polish; README documents setup and limitations.
 
+## Current Milestone and Task
+
+- Milestone 1 — CameraX + IMU, intrinsics, and keypoint overlay. The initial capture/visualization foundation is implemented; it remains unverified as a compiling app.
+
 ## Current State
 
 - Added the Android app module, Gradle 8.10.2 wrapper, CameraX preview/ImageAnalysis, FAST keypoint extraction, sensor sampling, intrinsics defaults, and Compose HUD/overlay.
@@ -16,6 +20,10 @@
 - `git diff --check` passes. Assemble and unit-test tasks stop during Android Gradle Plugin resolution; DNS cannot resolve `dl.google.com`, and the Android SDK is absent from the task environment.
 - CodeQL reported that no changed languages were analyzable, so no CodeQL analysis ran.
 - No local unit-test infrastructure existed before the Android project was added; algorithm tests are planned for later milestones.
+
+## Next Step
+
+- Restore access to Google Maven and provide Android SDK API 35, then rerun the debug build and unit-test task before considering milestone 1 verified.
 
 ## Assumptions
 
