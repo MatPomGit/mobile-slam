@@ -5,4 +5,5 @@ package dev.mobile.slam.frontend
  */
 data class Settings(
     val fastThreshold: Int = 20,
+    val imuHudIntervalMs: Long = 100,
 )

@@ -54,25 +54,13 @@ internal class CameraAnalyzer(
             val fastDetector = detector ?: FastFeatureDetector.create(settings.fastThreshold, true)
                 .also { detector = it }
             val plane = image.planes.first()
-            val buffer = plane.buffer.duplicate()
-            val rowStride = plane.rowStride
-            val pixelStride = plane.pixelStride
-            val baseOffset = buffer.position()
-            val pixels = ByteArray(image.width * image.height)
-
-            if (pixelStride == 1) {
-                for (row in 0 until image.height) {
-                    buffer.position(baseOffset + row * rowStride)
-                    buffer.get(pixels, row * image.width, image.width)
-                }
-            } else {
-                for (row in 0 until image.height) {
-                    for (column in 0 until image.width) {
-                        pixels[row * image.width + column] =
-                            buffer.get(baseOffset + row * rowStride + column * pixelStride)
-                    }
-                }
-            }
+            val pixels = LumaPlane.copy(
+                source = plane.buffer,
+                width = image.width,
+                height = image.height,
+                rowStride = plane.rowStride,
+                pixelStride = plane.pixelStride,
+            )
 
             val grayscale = Mat(image.height, image.width, CvType.CV_8UC1)
             val keypoints = MatOfKeyPoint()
