@@ -37,11 +37,7 @@ import androidx.compose.ui.unit.dp
  * Start-up screen; it deliberately does not request camera permission or start any sensors.
  */
 @Composable
-fun MainMenuScreen(
-    version: String,
-    onNavigate: (AppDestination) -> Unit,
-    onExit: () -> Unit,
-) {
+fun MainMenuScreen(version: String, onNavigate: (AppDestination) -> Unit, onExit: () -> Unit) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val columns =
             when {
@@ -51,27 +47,25 @@ fun MainMenuScreen(
             }
 
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 840.dp),
+                modifier = Modifier.widthIn(max = 840.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Box(
-                    modifier =
-                        Modifier
-                            .size(96.dp)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            .semantics { contentDescription = "Miejsce na logo aplikacji" },
+                    modifier = Modifier
+                        .size(96.dp)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        .semantics { contentDescription = "Miejsce na logo aplikacji" },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text("LOGO", style = MaterialTheme.typography.labelMedium)
@@ -87,7 +81,7 @@ fun MainMenuScreen(
             }
 
             Column(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 840.dp),
+                modifier = Modifier.widthIn(max = 840.dp).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text("TRYBY PRACY", style = MaterialTheme.typography.titleMedium)
@@ -111,7 +105,7 @@ fun MainMenuScreen(
             }
 
             Column(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 840.dp),
+                modifier = Modifier.widthIn(max = 840.dp).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -140,11 +134,7 @@ fun MainMenuScreen(
 }
 
 @Composable
-private fun ModeButton(
-    destination: AppDestination,
-    modifier: Modifier = Modifier,
-    onNavigate: (AppDestination) -> Unit,
-) {
+private fun ModeButton(destination: AppDestination, modifier: Modifier, onNavigate: (AppDestination) -> Unit) {
     OutlinedButton(
         onClick = { if (destination.isAvailable) onNavigate(destination) },
         enabled = destination.isAvailable,
