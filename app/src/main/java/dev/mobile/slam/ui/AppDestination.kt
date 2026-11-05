@@ -31,6 +31,7 @@ enum class AppDestination(
 
 /** Keeps the UI and any programmatic caller from opening a route not implemented yet. */
 object AppNavigation {
-    fun navigate(current: AppDestination, requested: AppDestination): AppDestination =
-        if (requested.isAvailable) requested else current
+    fun navigate(current: AppDestination, requested: AppDestination): AppDestination {
+        return if (requested.isAvailable) requested else current
+    }
 }
