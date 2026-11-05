@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -206,10 +207,20 @@ internal fun HardwareDiagnosticsScreen(
 
 @Composable
 private fun DiagnosticGroup(section: DiagnosticSection) {
+    var expanded by rememberSaveable(section.name) {
+        mutableStateOf(section.name == "Urządzenie i środowisko")
+    }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(section.name, style = MaterialTheme.typography.titleMedium)
-        section.fields.forEach { field ->
-            DiagnosticValue(field)
+        OutlinedButton(
+            onClick = { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            Text("${section.name} · ${if (expanded) "Zwiń" else "Rozwiń"}")
+        }
+        if (expanded) {
+            section.fields.forEach { field ->
+                DiagnosticValue(field)
+            }
         }
     }
 }
