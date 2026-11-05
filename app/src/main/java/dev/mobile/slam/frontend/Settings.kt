@@ -7,10 +7,27 @@ package dev.mobile.slam.frontend
 data class Settings(
     val fastThreshold: Int = DEFAULT_FAST_THRESHOLD,
     val imuHudIntervalMs: Long = DEFAULT_IMU_HUD_INTERVAL_MS,
+    val kltMaxTracks: Int = 240,
+    val kltMinTracks: Int = 90,
+    val kltWindowSize: Int = 21,
+    val kltMaxLevel: Int = 3,
+    val kltForwardBackwardPx: Float = 1.5f,
+    val kltMinSeparationPx: Float = 9f,
+    val kltMaxGapMs: Long = 250L,
+    val kltGridColumns: Int = 8,
+    val kltGridRows: Int = 6,
 ) {
     init {
         require(fastThreshold in MIN_FAST_THRESHOLD..MAX_FAST_THRESHOLD)
         require(imuHudIntervalMs in MIN_IMU_HUD_INTERVAL_MS..MAX_IMU_HUD_INTERVAL_MS)
+        require(kltMaxTracks in 1..2000)
+        require(kltMinTracks in 1..kltMaxTracks)
+        require(kltWindowSize in 5..61 && kltWindowSize % 2 == 1)
+        require(kltMaxLevel in 0..5)
+        require(kltForwardBackwardPx.isFinite() && kltForwardBackwardPx > 0f)
+        require(kltMinSeparationPx.isFinite() && kltMinSeparationPx >= 0f)
+        require(kltMaxGapMs in 50L..2000L)
+        require(kltGridColumns in 1..32 && kltGridRows in 1..32)
     }
 
     companion object {

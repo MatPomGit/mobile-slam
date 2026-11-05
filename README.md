@@ -1,13 +1,13 @@
 # Mobile SLAM
 
-Android teaching app for making monocular visual-SLAM pipeline stages visible to students. The startup screen is a mode menu with a reserved logo slot; the **Tryb na żywo** route displays the milestone-1 CameraX preview, OpenCV FAST keypoints, available IMU samples, and teaching-only camera intrinsics.
+Android teaching app for making monocular visual-SLAM pipeline stages visible to students. The startup screen is a mode menu with a reserved logo slot; the **Tryb na żywo** route displays CameraX preview, OpenCV FAST detections, pyramidal Lucas–Kanade (KLT) correspondences, available IMU samples and teaching-only camera intrinsics.
 
 ## Assumptions
 
 - This delivery is milestone 1; the menu shows tracking, initialization, map, calibration, recording/replay, metrics and optional ARCore as **disabled** future routes. The Settings screen edits and persists FAST and IMU HUD parameters (#22). A preliminary read-only hardware overview is available; complete diagnostics and export remain #23.
 - Live use requires a rear camera and runtime camera permission. Missing accelerometer or gyroscope hardware does not prevent camera analysis.
 - The displayed intrinsics are a teaching estimate for a nominal 640×480 image, not measured device calibration. CameraX can select another supported resolution.
-- FAST points are detected independently in every frame; they are not SLAM tracks, matches, or inliers.
+- FAST detections seed KLT feature tracks; validated forward/backward optical flow carries stable IDs and track ages across frames. These are **2D image correspondences**, not triangulated map points, geometric inliers or camera pose.
 - Camera and sensor timestamps are exposed in nanoseconds as reported by Android. Camera clock source and sensor time alignment must be validated per device before fusion.
 
 ## Build and run
@@ -47,9 +47,17 @@ Camera analysis runs on a dedicated single-thread executor and publishes immutab
 
 Camera use cases are bound to the lifecycle and unbound individually when the screen is disposed. IMU listeners start at `ON_START` and unregister at `ON_STOP`. The sensors run in Android's `SENSOR_DELAY_GAME` mode; HUD snapshots are throttled to approximately 10 Hz to avoid unnecessary recompositions. Accelerometer and gyroscope timestamps are retained separately. This HUD path is not a synchronized, full-rate visual-inertial sensor-fusion feed.
 
+## Temporal FAST-to-KLT tracking (M2)
+
+The analyzer owns the current grayscale Mat and a single retained previous grayscale clone. OpenCV `Video.calcOpticalFlowPyrLK` estimates correspondences in both directions; points are accepted only when both status flags succeed, coordinates are finite and in the ImageProxy crop, and the forward–backward residual is below the configured threshold. A spatially distributed, bounded pool replenishes verified tracks from FAST detections when fewer than the configured minimum remain.
+
+The overlay uses **cyan** for freshly detected seeds and **green** for points tracked from the preceding frame, with short image-space displacement segments. It reports separate new/tracked/rejected counts. Stable track IDs and ages are reset on loss, image geometry/rotation/crop change or a timestamp gap longer than 250 ms (IDs are not reused within an analyzer session). KLT is not visual odometry or SLAM initialization. Monocular scale, calibration and camera–IMU temporal alignment remain unresolved.
+
+KLT thresholds are validated in `frontend.Settings` with defaults: 240 maximum tracks; replenishment under 90; 21-pixel LK window; pyramid level 3; 1.5 px forward/backward error limit; 9 px minimum separation; 8×6 spatial cells. The KLT configuration is currently fixed in the UI; only previously supported FAST threshold and IMU HUD settings are persisted.
+
 ## Usage in class
 
-Move the camera across a textured scene and observe the location and count of FAST corners. Compare low- and high-texture surfaces and different motion conditions. The feature detections do not yet imply camera motion or a solved camera pose.
+Move the camera across a textured scene and observe the location and count of FAST corners. Compare low- and high-texture surfaces and different motion conditions. KLT trajectories show image-space motion only; neither track counts nor displacements constitute a solved camera pose.
 
 ## Tests
 
@@ -90,5 +98,5 @@ The exported checklist remains NOT_TESTED until a physical-device acceptance rep
 - Low-texture scenes produce few stable features.
 - Camera intrinsics are not calibrated and distortion is not corrected.
 - Sensor and camera timestamps are not synchronized or validated for visual-inertial fusion.
-- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Hardware inventory, basic camera/IMU measurements and JSON export are implemented; quantitative device acceptance still requires #4 and measured camera calibration remains #9.
+- KLT provides only local, image-space feature tracking; no visual odometry, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Hardware inventory, basic camera/IMU measurements and JSON export are implemented; quantitative device acceptance still requires #4 and measured camera calibration remains #9.
 - Overlay alignment and lifecycle behavior require physical-device validation; CI runs only host JVM tests and static checks.
