@@ -19,9 +19,11 @@
 
 - On Samsung SM-S938B (2026-11-05), preview/FAST/IMU HUD were observed and schema-v1 hardware JSON was exported: CameraX 640×480, 30.013 FPS timestamp-derived, analysis p50 2.088 ms/p95 3.382 ms; diagnostic IMU 4.936 s, accelerometer 118.725 Hz, gyroscope 47.490 Hz; camera timestamp source REALTIME but temporal alignment not verified. Permission recovery, controlled overlay alignment, lifecycle and long-run stability remain unverified.
 - Default intrinsics are uncalibrated; sensor clocks are not synchronized with frames.
-- Current FAST detections are independent per-frame features, not pose or map estimates. The 20.43-second recording and static screenshots are not an M1 acceptance substitute (see docs/device-tests/sm-s938b-2026-11-05.md).
+- M2 KLT uses FAST seeds and temporal image-space optical flow; it does not estimate pose or map points. The 20.43-second recording and static screenshots predate KLT and are not an M1 acceptance substitute (see docs/device-tests/sm-s938b-2026-11-05.md).
 
 ## Changelog
+
+- 2026-11-05 — PR #30 frame/pipeline contracts merged after CI (main 08144385). Issue #8 implementation branch adds pyramidal KLT, forward/backward quality gates, stable track IDs, grid bounded selection, overlays, and JVM tests; exact-head CI/device acceptance pending.
 
 - 2026-11-05 — PR #29 merged on 32b219e after green exact-head CI; #4 hardware acceptance remains open.
 - 2026-11-05 — M2 #7 branch introduces immutable contracts, frame timestamp/order gate, bounded latest-only UI dispatch, analyzer disposal and JVM regression tests. Awaiting exact-head PR CI.
