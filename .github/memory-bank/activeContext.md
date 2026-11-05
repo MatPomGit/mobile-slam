@@ -10,13 +10,13 @@
 
 ## Current State
 - Feature branch now contains typed route gating, adaptive main menu with replaceable logo slot, Live navigation, read-only Settings overview, About, Exit, JVM route tests and Android instrumentation smoke-test source.
-- Camera permission dialog remains only in the Live route; no claim of device acceptance.
+- Camera permission dialog remains only in the Live route; CI passed on code SHA 2c847644, but Android instrumentation tests were not run and physical-device acceptance is outstanding.
 - Main at task start: `8f96a7cdbdc26af6fd837d103cf23281d4c12026`; merged PR #2 stabilizes milestone-1 camera/IMU and CI.
 - Existing UI boots directly to camera and only offers teaching-only intrinsics, per-frame FAST detections and an IMU HUD.
 - Physical device acceptance (#4) and persistent Settings (#22)/diagnostics (#23) remain pending.
 
 ## Next Step
-- Open a scoped PR for #21 and verify Android CI at its head SHA, correcting failures before requesting review. Settings editor and hardware diagnostics remain separate #22/#23 work.
+- PR #24 implements #21. CI #42017116559 passed on code SHA 2c847644 (assembleDebug, JVM tests, lint, ktlint, AndroidTest APK assembly). Review PR and perform hardware UI acceptance (#4); keep persistent Settings and diagnostics for #22/#23.
 
 ## Assumptions
 - Camera intrinsics are uncalibrated educational defaults.
