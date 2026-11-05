@@ -86,5 +86,5 @@ The exported checklist remains NOT_TESTED until a physical-device acceptance rep
 - Low-texture scenes produce few stable features.
 - Camera intrinsics are not calibrated and distortion is not corrected.
 - Sensor and camera timestamps are not synchronized or validated for visual-inertial fusion.
-- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Hardware inventory, basic camera/IMU measurements and JSON export are implemented in the stacked #23 branch; detailed physical-device calibration and validation still require #4 and #9.
+- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Hardware inventory, basic camera/IMU measurements and JSON export are implemented; quantitative device acceptance still requires #4 and measured camera calibration remains #9.
 - Overlay alignment and lifecycle behavior require physical-device validation; CI runs only host JVM tests and static checks.
