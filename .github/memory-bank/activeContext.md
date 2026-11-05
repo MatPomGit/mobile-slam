@@ -1,30 +1,18 @@
-# Active context — M2 pyramidal KLT tracking (Issue #8, 2026-11-05)
+# Active context — KLT physical-device observation and Live header regression (2026-11-05)
 
-## Goal
-Build the first actual temporal correspondence stage after PR #30 was merged to main (0814438). Preserve the M1 CameraX, FAST, IMU and device-diagnostics behavior while distinguishing per-frame detections from tracked features.
+## Baseline
+- PR #31 was merged to main at 5f3063178129e462331aaba876e6e1aa9981c030; main CI #42095053549 succeeded.
+- The project owner supplied a 13.779 s (1080×2340 px) Android screen recording on 2026-11-05, with visible FAST/KLT overlays and movement in an indoor scene. Installed APK commit SHA was not independently established. This is video evidence of the current KLT UI, not an executed instrumentation test.
+- Earlier Samsung SM-S938B inventory (Android 17) is documented separately; physical device identity cannot be independently verified from the new recording alone.
 
-## Ordered plan (self-reviewed against systemPatterns.md)
-1. Extend immutable Settings with validated KLT/FAST selection thresholds (defaults only; UI persistence remains for FAST/HUD). No new dependencies or Gradle modules.
-2. Add a pure JVM-testable track manager: stable IDs and ages, crop/bounds, quality gates, spatial distribution, bounded selection, reset on geometry/time discontinuity.
-3. Add a serial-thread OpenCV tracker using pyramidal LK, forward-backward consistency and bounded lifetime for previous grayscale Mat. Keep native Mats entirely on analysis executor.
-4. Integrate with CameraAnalyzer frame segment IDs. Publish immutable tracking snapshots and show separate counts/overlays for newly seeded versus tracked features; no pose/map/synchronization claims.
-5. Add deterministic JVM tests; validate Android assemble/unit/lint/ktlint/AndroidTest compile on exact PR head. Update README/systemPatterns/progress; link open device-acceptance tasks.
+## Goal and ordered plan
+1. Record the new KLT screen-recording observations in `docs/device-tests` without committing raw media, overstating pose/accuracy, or claiming that CI-executed Android instrumentation occurred.
+2. Fix the clipped KLT subtitle in `MainActivity` by shortening it and enforcing a one-line responsive layout. Do not change CameraX, OpenCV, trackers or IMU.
+3. Update README/progress, add reproducible on-device acceptance steps, review UI accessibility/wrapping.
+4. Run exact-head Android CI (assembleDebug, JVM unit tests, lint, ktlint, AndroidTest APK compilation); merge only on green CI. Follow-up operator screen recording checks this clipping fix on the phone.
 
-## Technical risks and acceptance
-- CameraX KEEP_ONLY_LATEST stays the sole image acquisition buffer. No extra asynchronous worker and no state shared across background and main threads.
-- OpenCV LK requires >=2 consecutive gray frames with consistent geometry; reset across new segment or >250 ms gap, and release old grayscale Mat exactly once.
-- Forward and backward statuses and finite/error/bounds checks must all pass; no fabricated stable IDs from FAST proximity alone.
-- New seeds are distributed across crop cells, capped at maximum track count and separated from tracked points.
-- Frame/track coordinates are unrotated ImageProxy pixels; existing PreviewCoordinates handles overlay transformation.
-- Tracked KLT points are not PnP inliers, 3D map points, or globally localized pose. Exact APK/device validation #4 remains open.
-- CI is required before merge. If test/compile fails, fix within the same PR.
-
-## Implementation status
-- Implemented KLT thresholds in `frontend/Settings` (not yet persisted or editable).
-- Implemented JVM-testable `TrackManager` with stable IDs/ages and bounded spatial replenishment.
-- Added OpenCV pyramidal LK with forward/backward check and previous grayscale Mat ownership on analyzer worker.
-- Integrated KLT in CameraAnalyzer and rendered cyan FAST seeds / green tracked points with separate counts in Live; clarified no camera pose/3D.
-- JVM regression tests for track lifecycle and filtering added. Android CI and physical device testing remain pending before merge.
-
-- Added an Android instrumented smoke test with synthetic grayscale frames shifted by (2,1) pixels. It requires physical device/emulator execution; CI only compiles it.
-- First PR #31 CI reported only ktlint import ordering in CameraAnalyzer; corrected in the same PR, awaiting fresh exact-head CI.
+## Risks and acceptance
+- Compose header must fit the available width (ellipsize on narrow devices) and remain separate from PreviewView; the new short caption does not imply visual odometry/3D.
+- Do not infer numeric camera FPS from a 60 fps screen recording, and do not identify LK optical-flow accuracy without ground truth.
+- Observation of active tracks does not prove every ID correspondence is correct. Existing forward–backward filter remains unmodified.
+- Tests must remain green; no permissions/dependencies or architectural changes. Hardware acceptance #4 remains open.
