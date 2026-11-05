@@ -1,24 +1,21 @@
-# Active context — KLT physical-device observation and Live header regression (2026-11-05)
+# Active context — M2 camera calibration (#9, 2026-11-05)
 
-## Baseline
-- PR #31 was merged to main at 5f3063178129e462331aaba876e6e1aa9981c030; main CI #42095053549 succeeded.
-- The project owner supplied a 13.779 s (1080×2340 px) Android screen recording on 2026-11-05, with visible FAST/KLT overlays and movement in an indoor scene. Installed APK commit SHA was not independently established. This is video evidence of the current KLT UI, not an executed instrumentation test.
-- Earlier Samsung SM-S938B inventory (Android 17) is documented separately; physical device identity cannot be independently verified from the new recording alone.
+## Goal and baseline
+PR #32 now contains main at 07c5f62 (PR #33 KLT subtitle fix/device evidence) and is mergeable. It extends the measured-only camera intrinsics contract with a real on-device photograph workflow and small portable JSON profiles, without silently applying calibration to KLT or pose.
 
-## Goal and ordered plan
-1. Record the new KLT screen-recording observations in `docs/device-tests` without committing raw media, overstating pose/accuracy, or claiming that CI-executed Android instrumentation occurred.
-2. Fix the clipped KLT subtitle in `MainActivity` by shortening it and enforcing a one-line responsive layout. Do not change CameraX, OpenCV, trackers or IMU.
-3. Update README/progress, add reproducible on-device acceptance steps, review UI accessibility/wrapping.
-4. Run exact-head Android CI (assembleDebug, JVM unit tests, lint, ktlint, AndroidTest APK compilation); merge only on green CI. Follow-up operator screen recording checks this clipping fix on the phone.
+## Implemented and files
+- `calib/MeasuredCalibration.kt`: physically meaningful pinhole/Brown-Conrady profile with reference crop and robust dimension/ID checks.
+- `calib/ChessboardCalibrator.kt`: user-selected JPEG/PNG, no EXIF reorientation, bounded sequential decoding, OpenCV corner detection + subpixel refinement, spatial diversity/coverage checks, `calibrateCamera` and RMS gate. All native Mats/bitmaps released.
+- `calib/CalibrationProfileJson.kt`: schema-v1 validated import/export.
+- `ui/CalibrationScreen.kt`, `ui/AppDestination.kt`, `MainActivity.kt`: menu-accessible, permission-free calibration UI with manual camera-ID and grid/square parameters, background processing and SAF profile handling. No active runtime calibration in CameraX.
+- JVM tests for measured intrinsics and chessboard parameter validation; Android instrumentation JSON roundtrip and menu navigation compilation.
+- README, Memory Bank and Issue #9 documenting optical equivalence restrictions.
 
-## Risks and acceptance
-- Compose header must fit the available width (ellipsize on narrow devices) and remain separate from PreviewView; the new short caption does not imply visual odometry/3D.
-- Do not infer numeric camera FPS from a 60 fps screen recording, and do not identify LK optical-flow accuracy without ground truth.
-- Observation of active tracks does not prove every ID correspondence is correct. Existing forward–backward filter remains unmodified.
-- Tests must remain green; no permissions/dependencies or architectural changes. Hardware acceptance #4 remains open.
+## Validation and risks
+- Host Gradle could not resolve AGP in the earlier local runner; exact-head Android CI must compile, run JVM tests, lint and ktlint before any merge. AndroidTest is compiled but not device-executed in CI.
+- Physical Samsung SM-S938B acceptance remains open: capture sufficiently diverse chessboard images, measure RMS under real conditions, record exact APK SHA, check CameraX ImageProxy crop/rotation and physical camera ID/focus/zoom pipeline, test SAF import/export and correct for EXIF limitations.
+- The resulting K and distortion profile must not be used in essential-matrix/PnP without matching hardware stream geometry; #10 still blocked by this acceptance.
+- No additional modules, permissions, unbounded image queues or secret uploads.
 
-## Work performed
-- On-screen 13.779 s KLT recording reviewed. Example counters: 94 tracked/0 new/15 rejected (~0.4 s), 58/30/34 (~8.7 s), 77/5/6 (~13.4 s). Long subtitle is visibly covered by camera preview; no evidence of 3D pose or numerical flow accuracy.
-- Reduced Live subtitle to `FAST → KLT · śledzenie punktów 2D`, enforced `maxLines=1` with ellipsis and inserted a clear 8 dp spacer before preview.
-- Created `docs/device-tests/sm-s938b-2026-11-05-klt.md` with provenance, limitations and controlled follow-up test plan. Raw recording not committed.
-- CI and real-device retest of updated APK are pending. Main CI for merged #31 was green.
+## Next
+Fix any exact-head CI failures in this PR, then merge only after green status. Keep #9 open for the physical measurement and optical-path acceptance step.

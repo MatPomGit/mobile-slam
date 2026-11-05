@@ -19,6 +19,7 @@ class MainMenuTest {
     fun startScreenShowsAllModesButDisablesUnimplementedFeatures() {
         rule.onNodeWithText("MOBILE SLAM").assertExists()
         rule.onNodeWithText("Tryb na żywo").assertExists()
+        rule.onNodeWithText("Kalibracja kamery").assertExists()
         rule.onNodeWithText("Krok po kroku").assertIsNotEnabled()
         rule.onNodeWithText("Mapa 3D").assertIsNotEnabled()
         rule.onNodeWithText("Nagrywanie sesji").assertIsNotEnabled()

@@ -4,7 +4,7 @@ Android teaching app for making monocular visual-SLAM pipeline stages visible to
 
 ## Assumptions
 
-- This delivery is milestone 1; the menu shows tracking, initialization, map, calibration, recording/replay, metrics and optional ARCore as **disabled** future routes. The Settings screen edits and persists FAST and IMU HUD parameters (#22). A preliminary read-only hardware overview is available; complete diagnostics and export remain #23.
+- This delivery is milestone 1; the menu shows tracking, initialization, map, recording/replay, metrics and optional ARCore as **disabled** future routes; **Kalibracja kamery** now opens the photo-based measurement screen. The Settings screen edits and persists FAST and IMU HUD parameters (#22). A preliminary read-only hardware overview is available; complete diagnostics and export remain #23.
 - Live use requires a rear camera and runtime camera permission. Missing accelerometer or gyroscope hardware does not prevent camera analysis.
 - The displayed intrinsics are a teaching estimate for a nominal 640×480 image, not measured device calibration. CameraX can select another supported resolution.
 - FAST detections seed KLT feature tracks; validated forward/backward optical flow carries stable IDs and track ages across frames. These are **2D image correspondences**, not triangulated map points, geometric inliers or camera pose.
@@ -57,6 +57,16 @@ The overlay uses **cyan** for freshly detected seeds and **green** for points tr
 
 KLT thresholds are validated in `frontend.Settings` with defaults: 240 maximum tracks; replenishment under 90; 21-pixel LK window; pyramid level 3; 1.5 px forward/backward error limit; 9 px minimum separation; 8×6 spatial cells. The KLT configuration is currently fixed in the UI; only previously supported FAST threshold and IMU HUD settings are persisted.
 
+## Chessboard calibration (M2 / issue #9)
+
+The **Kalibracja kamery** menu entry opens a photo-based OpenCV calibration workflow. It does not need live CameraX permission. Prepare a printed chessboard of **10×7 squares = 9×6 inner corners** with known square pitch (default 20 mm). Photograph it at 12–25 different positions, scales and tilts using the **same physical lens and fixed zoom/focus**. Select 8–40 JPEG/PNG images via Android's document picker. Use photos with one image orientation and with normal/undefined EXIF orientation; rotated or mirrored EXIF images are rejected, not silently transformed. The image decoder reduces large photos for bounded processing; the resulting profile records the decoded image resolution.
+
+OpenCV `findChessboardCorners` + `cornerSubPix` extracts image observations, rejecting insufficient board coverage, duplicate views and inconsistent image dimensions. `calibrateCamera` estimates the pinhole intrinsics and five Brown–Conrady coefficients. At least eight diverse detections and RMS reprojection error at most **1.5 px** are required; failed attempts yield no profile. Input photos stay local and are not uploaded. Image Mats and bitmaps are released between photos.
+
+A successful profile reports physical-camera ID **entered by the operator**, fx/fy/cx/cy, five coefficients, RMS, resolution and provenance. **Importuj/Eksportuj profil JSON** uses Android's Storage Access Framework; no new persistent application-storage schema is required. A locally exported JSON can be selected again after restarting the application.
+
+**Scientific limitation:** the user-entered camera ID and image RMS do not independently verify that selected photographs came from the same optical pipeline as CameraX ImageAnalysis (sensor crop, stabilization, zoom, focusing and orientation can differ). A photo-derived profile must be validated against actual CameraX frames and independent chessboard reprojection measurements before use for essential-matrix triangulation or PnP. There is **no automatic activation** of the profile in Live/KLT, and monocular metric scale is still unknown. Issue #9 physical-device acceptance remains open.
+
 ## Usage in class
 
 Move the camera across a textured scene and observe the location and count of FAST corners. Compare low- and high-texture surfaces and different motion conditions. KLT trajectories show image-space motion only; neither track counts nor displacements constitute a solved camera pose.
@@ -98,7 +108,11 @@ The exported checklist remains NOT_TESTED until a physical-device acceptance rep
 - Monocular scale remains arbitrary; no metric scale is estimated.
 - Pure rotation lacks translational parallax for two-view initialization.
 - Low-texture scenes produce few stable features.
-- Camera intrinsics are not calibrated and distortion is not corrected.
+- CameraX Live still displays demo intrinsics and does not apply measured distortion correction; calibration can be computed/imported separately but requires lens/crop/focus compatibility checks before geometric pose estimation.
 - Sensor and camera timestamps are not synchronized or validated for visual-inertial fusion.
 - KLT provides only local, image-space feature tracking; no visual odometry, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Hardware inventory, basic camera/IMU measurements and JSON export are implemented; quantitative device acceptance still requires #4 and measured camera calibration remains #9.
 - Overlay alignment and lifecycle behavior require physical-device validation; CI runs only host JVM tests and static checks.
+
+### Calibration foundation (M2)
+
+`calib/MeasuredCalibration.kt` defines a measured-only camera profile: physical camera ID, reference full-frame dimensions, exclusive crop, pinhole matrix, five Brown–Conrady distortion coefficients, optional focus distance, provenance and measured RMS reprojection error. A pure Kotlin transform supports uniform resizing and crop offsets only; incompatible camera IDs, aspect ratios, or reference subcrops are rejected. Point undistortion returns normalized camera coordinates or fails explicitly if inversion does not converge. This is a geometry contract, **not** an active camera calibration or pose estimator. The Live HUD still displays teaching-only example intrinsics. Chessboard capture, verified import/export, actual camera binding and device reprojection acceptance remain part of #9.
