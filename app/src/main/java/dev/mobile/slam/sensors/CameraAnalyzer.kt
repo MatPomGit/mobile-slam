@@ -4,11 +4,11 @@ import android.os.SystemClock
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import dev.mobile.slam.diagnostics.FrameObservation
-import dev.mobile.slam.frontend.Settings
 import dev.mobile.slam.frontend.FrameGeometry
 import dev.mobile.slam.frontend.FrameOrderGate
 import dev.mobile.slam.frontend.LatestSnapshotDispatcher
 import dev.mobile.slam.frontend.PixelCrop
+import dev.mobile.slam.frontend.Settings
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
 import org.opencv.core.Mat
