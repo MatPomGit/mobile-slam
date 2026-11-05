@@ -89,9 +89,11 @@ internal class KltFeatureTracker(private val settings: Settings) : AutoCloseable
             val backwardFlags = backwardStatus.toArray()
             return tracks.indices.map { index ->
                 val forwardOk = index < forwardFlags.size && forwardFlags[index].toInt() != 0 &&
-                    index < nextPositions.size
+                    index < nextPositions.size &&
+                    nextPositions[index].x.isFinite() && nextPositions[index].y.isFinite()
                 val reverseOk = index < backwardFlags.size && backwardFlags[index].toInt() != 0 &&
-                    index < backwardPositions.size
+                    index < backwardPositions.size &&
+                    backwardPositions[index].x.isFinite() && backwardPositions[index].y.isFinite()
                 val newPosition = if (forwardOk) nextPositions[index] else previousPositions[index]
                 val returned = if (reverseOk) backwardPositions[index] else previousPositions[index]
                 val residual = hypot(
