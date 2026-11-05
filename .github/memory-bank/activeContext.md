@@ -1,7 +1,7 @@
 # Active context — M2 camera calibration (#9, 2026-11-05)
 
 ## Goal and baseline
-PR #32 now contains main at 07c5f62 (PR #33 KLT subtitle fix/device evidence) and is mergeable. It extends the measured-only camera intrinsics contract with a real on-device photograph workflow and small portable JSON profiles, without silently applying calibration to KLT or pose.
+PR #32 was merged to main at aabb221e after Android CI passed on exact head fa50e58 (run #42123629066). The branch included PR #33's KLT UI fix. It extends the measured-only camera intrinsics contract with a real on-device photograph workflow and small portable JSON profiles, without silently applying calibration to KLT or pose.
 
 ## Implemented and files
 - `calib/MeasuredCalibration.kt`: physically meaningful pinhole/Brown-Conrady profile with reference crop and robust dimension/ID checks.
@@ -18,4 +18,4 @@ PR #32 now contains main at 07c5f62 (PR #33 KLT subtitle fix/device evidence) an
 - No additional modules, permissions, unbounded image queues or secret uploads.
 
 ## Next
-Fix any exact-head CI failures in this PR, then merge only after green status. Keep #9 open for the physical measurement and optical-path acceptance step.
+PR #32 passed JVM tests, debug APK build, lint, ktlint and AndroidTest APK compilation; it was merged via squash. Keep #9 open for measured hardware calibration and optical-path acceptance; then #10 can use a validated compatible profile. Main CI for the merge commit is a separate check.
