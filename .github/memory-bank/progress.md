@@ -17,11 +17,13 @@
 
 ## Known issues
 
-- Short on-device preview/FAST/IMU HUD were observed on Samsung SM-S938B (2026-11-05); permission recovery, controlled overlay alignment under rotations/resolutions and long-run stability remain unverified.
+- On Samsung SM-S938B (2026-11-05), preview/FAST/IMU HUD were observed and schema-v1 hardware JSON was exported: CameraX 640×480, 30.013 FPS timestamp-derived, analysis p50 2.088 ms/p95 3.382 ms; diagnostic IMU 4.936 s, accelerometer 118.725 Hz, gyroscope 47.490 Hz; camera timestamp source REALTIME but temporal alignment not verified. Permission recovery, controlled overlay alignment, lifecycle and long-run stability remain unverified.
 - Default intrinsics are uncalibrated; sensor clocks are not synchronized with frames.
 - Current FAST detections are independent per-frame features, not pose or map estimates. The 20.43-second recording and static screenshots are not an M1 acceptance substitute (see docs/device-tests/sm-s938b-2026-11-05.md).
 
 ## Changelog
+
+- 2026-11-05 — Measured SM-S938B hardware JSON added to device-tests report; six checklist cases remain NOT_TESTED. PR #29 prior head CI green; new documentation head requires its own validation.
 
 - 2026-11-05 — First partial physical-device evidence documented; Live permission checks added for resume, hardware inventory sections made collapsible; CI verification and physical acceptance #4 still pending.
 - 2026-11-05 — PR #28 merged; main CI #42063929598 passed on 83fcac79.
