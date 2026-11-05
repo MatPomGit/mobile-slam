@@ -71,6 +71,7 @@ import dev.mobile.slam.sensors.ImuSource
 import dev.mobile.slam.ui.AboutScreen
 import dev.mobile.slam.ui.AppDestination
 import dev.mobile.slam.ui.AppNavigation
+import dev.mobile.slam.ui.CalibrationScreen
 import dev.mobile.slam.ui.HardwareDiagnosticsScreen
 import dev.mobile.slam.ui.MainMenuScreen
 import dev.mobile.slam.ui.SettingsScreen
@@ -206,6 +207,7 @@ private fun AppRoot(onExit: () -> Unit) {
             },
             onBack = onBack,
         )
+        AppDestination.CALIBRATION -> CalibrationScreen(onBack = onBack)
         AppDestination.ABOUT -> AboutScreen(version = BuildConfig.VERSION_NAME, onBack = onBack)
         else -> {
             MainMenuScreen(
