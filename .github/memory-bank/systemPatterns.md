@@ -34,6 +34,10 @@ The single-threaded `sensors/KltFeatureTracker` keeps one previous grayscale `Ma
 
 A tracking result is not a 3D map, an inlier set or a camera pose. The cyan/green HUD overlays distinguish new and tracked features. KLT parameters currently have immutable validated defaults in `Settings`; DataStore persists only the existing FAST/IMU HUD settings.
 
+## Calibration contract (#9)
+
+`calib/MeasuredCalibration` stores explicit camera ID, full-frame dimensions/crop, Brown-Conrady five-coefficient distortion, measurement provenance and RMS reprojection error. It maps uniformly resized image intrinsics into analysis crop coordinates, rejects incompatible camera IDs/aspect ratios/subcrops, and provides iterative undistortion to normalized camera coordinates. No pose computation may use teaching-only defaults. This initial foundation is not yet connected to CameraX or persistent profiles; chessboard capture and measured device validation remain pending.
+
 ## Decisions
 
 - 2026-11-04 — Single app module: simple first-milestone foundation rather than premature multi-module decomposition.
