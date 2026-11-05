@@ -68,10 +68,10 @@ import dev.mobile.slam.ui.HardwareOverviewScreen
 import dev.mobile.slam.ui.MainMenuScreen
 import dev.mobile.slam.ui.SettingsScreen
 import dev.mobile.slam.viz.PreviewCoordinates
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Hosts the student-facing menu and opens camera resources only inside the live destination.
