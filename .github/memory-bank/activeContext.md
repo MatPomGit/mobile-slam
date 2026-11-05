@@ -19,3 +19,9 @@ PR #31 pyramidal KLT has merged into main at 5f306317 with successful CI. Begin 
 
 ## Acceptance and status
 Pure Kotlin calibration profile validation, deterministic geometry and tests committed. CI exact head is required before merging. No device calibration measurements available yet.
+
+## Implementation status
+- Added `calib/MeasuredCalibration.kt` with validated measured provenance, geometry mapping, strict camera/aspect/crop rejection and Brown-Conrady point inversion.
+- Added JVM tests for uniform scaling, crop offsets, incompatible camera/geometry, synthetic distortion round-trip and invalid calibration metadata.
+- README and system patterns/progress updated. Existing Live demo intrinsics and KLT behavior unchanged.
+- Next: exact-head CI, followed by a separate chessboard capture/profile persistence and real-device acceptance increment under #9.
