@@ -16,3 +16,9 @@
 - Do not infer numeric camera FPS from a 60 fps screen recording, and do not identify LK optical-flow accuracy without ground truth.
 - Observation of active tracks does not prove every ID correspondence is correct. Existing forward–backward filter remains unmodified.
 - Tests must remain green; no permissions/dependencies or architectural changes. Hardware acceptance #4 remains open.
+
+## Work performed
+- On-screen 13.779 s KLT recording reviewed. Example counters: 94 tracked/0 new/15 rejected (~0.4 s), 58/30/34 (~8.7 s), 77/5/6 (~13.4 s). Long subtitle is visibly covered by camera preview; no evidence of 3D pose or numerical flow accuracy.
+- Reduced Live subtitle to `FAST → KLT · śledzenie punktów 2D`, enforced `maxLines=1` with ellipsis and inserted a clear 8 dp spacer before preview.
+- Created `docs/device-tests/sm-s938b-2026-11-05-klt.md` with provenance, limitations and controlled follow-up test plan. Raw recording not committed.
+- CI and real-device retest of updated APK are pending. Main CI for merged #31 was green.
