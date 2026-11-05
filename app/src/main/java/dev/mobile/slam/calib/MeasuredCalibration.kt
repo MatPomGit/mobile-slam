@@ -68,12 +68,7 @@ internal data class MeasuredCalibration(
      * pipeline or nonuniform aspect ratio must be recalibrated independently.
      * The resulting principal point is relative to the requested crop.
      */
-    fun forAnalysis(
-        activeCameraId: String,
-        fullWidth: Int,
-        fullHeight: Int,
-        crop: CalibrationCrop,
-    ): CameraIntrinsics? {
+    fun forAnalysis(activeCameraId: String, fullWidth: Int, fullHeight: Int, crop: CalibrationCrop): CameraIntrinsics? {
         if (activeCameraId != cameraId || fullWidth <= 0 || fullHeight <= 0 ||
             !crop.validFor(fullWidth, fullHeight)
         ) {

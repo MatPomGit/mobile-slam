@@ -23,6 +23,8 @@
 
 ## Changelog
 
+- 2026-11-05 — PR #32 CI formatting repair: ktlint reported only the `MeasuredCalibration.forAnalysis` signature; corrected its formatting. Local Gradle validation could not resolve the existing Android Gradle Plugin, so exact-head hosted CI remains pending.
+
 - 2026-11-05 — PR #31 KLT tracking merged at 5f306317 after green main CI #42095053549. Issue #8 remains open pending physical-device KLT acceptance.
 - 2026-11-05 — Issue #9 calibration foundation branch adds measured-only metadata, strict uniform-resize/crop compatibility and Brown-Conrady normalized undistortion with deterministic JVM tests. Chessboard acquisition, profile import/export and device validation remain pending.
 

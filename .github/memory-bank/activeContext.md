@@ -1,27 +1,17 @@
-# Active context — M2 calibration foundation (#9, 2026-11-05)
+# Active context — CI formatting repair (#32, 2026-11-05)
 
 ## Goal
-PR #31 pyramidal KLT has merged into main at 5f306317 with successful CI. Begin Issue #9 with a safe, independent calibration foundation before essential matrix initialization (#10). Do not substitute teaching intrinsics for measured hardware calibration.
+Fix the current PR's failing ktlint check without changing calibration behavior.
 
-## Scope and ordered plan
-1. Define immutable, validated calibrated camera metadata in calib, with explicit camera ID, reference dimensions, crop, distortion model, coefficients, provenance, RMS reprojection error and optional focus distance.
-2. Implement pure geometric transforms of K for a compatible full-frame analysis resolution and crop; reject aspect-ratio mismatch, invalid calibration or camera-ID mismatch.
-3. Provide normalized point undistortion for Brown-Conrady radial/tangential coefficients, with bounded iteration and failure for non-convergence. Do not claim that this alone validates a physical profile.
-4. Add deterministic JVM tests for scaling, crop offsets, invalid provenance, projection and undistortion; update README and Memory Bank.
-5. Open PR, check exact-head Android CI; leave chessboard acquisition, local SAF import/export and real-device reprojection acceptance for the next #9 increment.
+## Scope and result
+- `app/src/main/java/dev/mobile/slam/calib/MeasuredCalibration.kt`: normalized the reported function signature to one line; no behavior changed.
+- The project formatter, ktlint check, and JVM unit-test task could not start because Gradle could not resolve the existing Android Gradle Plugin.
+- CI's full log directly identified the signature violations; source inspection confirms the edited declaration addresses each reported whitespace issue. Hosted checks on the published head remain pending.
 
-## Invariants / risk
-- Existing Live FAST/KLT path and its teaching-only intrinsics display stay unchanged. No new camera permissions, native image queues, dependencies or persistence schema changes.
-- A calibrated profile is explicitly measured/imported; an estimate from Camera2 or default640x480 cannot be accepted as measured.
-- CameraX image coordinates remain unrotated full-frame pixels. Crop is an explicit affine shift; rotation remains handled separately by the existing preview mapper.
-- Geometry helpers return null on incompatible dimensions or invalid coordinates; no fabricated metric scale.
-- This PR does not enable pose estimation, PnP or camera/IMU fusion. Hardware validation #4 and full calibration #9 remain open.
+## Risks and strategy
+- Preserve behavior; only whitespace in a function signature changes.
+- Keep the limitation explicit: the local toolchain could not validate the correction.
 
-## Acceptance and status
-Pure Kotlin calibration profile validation, deterministic geometry and tests committed. CI exact head is required before merging. No device calibration measurements available yet.
-
-## Implementation status
-- Added `calib/MeasuredCalibration.kt` with validated measured provenance, geometry mapping, strict camera/aspect/crop rejection and Brown-Conrady point inversion.
-- Added JVM tests for uniform scaling, crop offsets, incompatible camera/geometry, synthetic distortion round-trip and invalid calibration metadata.
-- README and system patterns/progress updated. Existing Live demo intrinsics and KLT behavior unchanged.
-- Next: exact-head CI, followed by a separate chessboard capture/profile persistence and real-device acceptance increment under #9.
+## Acceptance criteria / status
+- CI-reported signature style violations are corrected without semantic changes.
+- Only the requested style repair and this task's Memory Bank status are changed.
