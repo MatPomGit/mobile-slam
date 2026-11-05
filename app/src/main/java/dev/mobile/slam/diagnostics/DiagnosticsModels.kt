@@ -34,13 +34,13 @@ internal object ClockDomainSafety {
     fun cameraImuComparable(source: CameraClockSource): Boolean = source == CameraClockSource.REALTIME
 
     fun explanation(source: CameraClockSource): String = when (source) {
-            CameraClockSource.REALTIME ->
-                "REALTIME: porównywalna domena zegara, ale nie potwierdzono opóźnienia ekspozycji ani kalibracji synchronizacji."
-            CameraClockSource.UNKNOWN ->
-                "UNKNOWN: nie wolno bezpośrednio odejmować znaczników czasu kamery i IMU."
-            CameraClockSource.UNAVAILABLE ->
-                "Nie ustalono źródła czasu aktywnej kamery. Synchronizacja niezweryfikowana."
-        }
+        CameraClockSource.REALTIME ->
+            "REALTIME: porównywalna domena zegara, ale nie potwierdzono opóźnienia ekspozycji ani kalibracji synchronizacji."
+        CameraClockSource.UNKNOWN ->
+            "UNKNOWN: nie wolno bezpośrednio odejmować znaczników czasu kamery i IMU."
+        CameraClockSource.UNAVAILABLE ->
+            "Nie ustalono źródła czasu aktywnej kamery. Synchronizacja niezweryfikowana."
+    }
 }
 
 /** Observed intervals based on each sensor's own timestamps, not on HUD callback frequency. */
