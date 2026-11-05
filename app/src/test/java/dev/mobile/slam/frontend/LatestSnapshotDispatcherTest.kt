@@ -23,7 +23,7 @@ class LatestSnapshotDispatcherTest {
     fun keepsOnlyMostRecentPendingFrameWhenUiIsSlow() {
         val executor = QueuedExecutor()
         val received = mutableListOf<Int>()
-        val dispatcher = LatestSnapshotDispatcher(executor) { received.add(it) }
+        val dispatcher = LatestSnapshotDispatcher<Int>(executor) { received.add(it) }
         for (frame in 1..100) dispatcher.publish(frame)
         assertEquals(1, executor.queuedCount())
         executor.drain()
@@ -34,7 +34,7 @@ class LatestSnapshotDispatcherTest {
     fun deliversNewSnapshotAfterPreviousDrain() {
         val executor = QueuedExecutor()
         val received = mutableListOf<Int>()
-        val dispatcher = LatestSnapshotDispatcher(executor) { received.add(it) }
+        val dispatcher = LatestSnapshotDispatcher<Int>(executor) { received.add(it) }
         dispatcher.publish(1)
         executor.drain()
         dispatcher.publish(2)
@@ -46,7 +46,7 @@ class LatestSnapshotDispatcherTest {
     fun closingDropsPendingSnapshotAndFutureWrites() {
         val executor = QueuedExecutor()
         val received = mutableListOf<Int>()
-        val dispatcher = LatestSnapshotDispatcher(executor) { received.add(it) }
+        val dispatcher = LatestSnapshotDispatcher<Int>(executor) { received.add(it) }
         dispatcher.publish(1)
         dispatcher.publish(2)
         dispatcher.close()
@@ -60,7 +60,7 @@ class LatestSnapshotDispatcherTest {
         val executor = QueuedExecutor()
         val received = mutableListOf<Int>()
         lateinit var dispatcher: LatestSnapshotDispatcher<Int>
-        dispatcher = LatestSnapshotDispatcher(executor) {
+        dispatcher = LatestSnapshotDispatcher<Int>(executor) {
             received.add(it)
             if (it == 1) dispatcher.publish(2)
         }
