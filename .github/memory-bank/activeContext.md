@@ -1,24 +1,18 @@
 # Active context
 
-## Current Plan (2026-11-05: Main menu, Issue #21)
-- Goal: replace immediate live-camera startup with a Polish, accessible main menu and capability-gated navigation; preserve the current live FAST/IMU demo and avoid requesting camera permission on launch.
-- Scope: `MainActivity.kt` routing, `ui/AppDestination.kt`, `ui/MainMenuScreen.kt`, `ui/SecondaryScreens.kt`, narrow build/test setup, README, tests and Memory Bank. Do **not** implement persistent settings or hardware diagnostics (#22/#23), nor new SLAM algorithms.
-- Steps: (1) define typed routes and their explicit enabled states; (2) implement responsive menu with a replaceable logo slot and all future modes disabled; (3) route to live camera with permission requested only on entry, show Settings overview and About, handle Back and Finish; (4) add pure navigation tests and Android UI smoke coverage; (5) run Android CI, correct regressions, update README and Memory Bank.
-- Risks: camera lifecycle and permission behavior across navigation/rotation require physical-device confirmation; Android UI instrumentation requires an emulator/device and cannot be claimed from JVM CI alone.
-- Tests: `./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest` in GitHub Actions (if toolchain supports it), plus manual phone checks for menu/live/menu, permission denied, Back and Exit.
-- Acceptance: main menu is shown without camera/IMU acquisition, live remains functional, all planned modes visibly disabled until implemented, Settings/About/Exit navigation is functional, programmatic route gating is tested, CI passes, no untested hardware claims.
+## Current Plan — Issue #22 (2026-11-05)
+- **Goal:** implement editable, validated and persisted FAST/IMU HUD parameters accessible through the existing Settings route, with a permission-free navigation entry to a separate preliminary read-only device information screen. Full hardware validation remains #23.
+- **Files:** `frontend/Settings.kt`, new `frontend/SettingsRepository.kt`, `MainActivity.kt`, `ui/SecondaryScreens.kt` or dedicated Settings/Hardware screens, `ui/AppDestination.kt`, build dependencies, unit/instrumentation tests, README and Memory Bank. Avoid modifying SLAM geometry, camera metadata or experimental sensor fusion.
+- **Steps:** (1) establish versioned Settings validation/defaults; (2) persist via Preferences DataStore and expose Flow; (3) bind the single authoritative Settings snapshot to Settings and Live, with save/reset handling and safe re-entry boundary; (4) display future controls as disabled and add preliminary read-only hardware route; (5) test invalid values, migration, process restart and UI navigation; (6) verify Android CI at exact SHA and document remaining device acceptance.
+- **Architecture:** single Activity and Compose destination registry remain unchanged. `Settings` is immutable, `SettingsRepository` owns DataStore persistence; no shared mutable data on camera/IMU threads. New values take effect **only when opening/re-opening Live**, safely recreating `CameraAnalyzer` and `ImuSource`; do not claim live hot reconfiguration.
+- **Validation:** FAST threshold integer [1,255], HUD refresh interval [100,1000] ms (max 10 Hz); rejection of invalid/unsupported settings; schema-v1 reset for unknown versions with visible warning. Camera intrinsics remain teaching-only.
+- **Testing:** `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest`; run unit tests for validation/migration, Compose instrumentation source for save/reset/disabled features, and document **unexecuted** hardware tests until a phone/emulator is used.
+- **Acceptance:** Settings opens without camera permission; storage survives restart; valid values are applied to fresh Live analyzer/IMU, invalid values cannot persist, reset restores 20 and 100, hardware link opens a truthful preliminary read-only page, CI passes.
 
 ## Current State
-- Feature branch now contains typed route gating, adaptive main menu with replaceable logo slot, Live navigation, read-only Settings overview, About, Exit, JVM route tests and Android instrumentation smoke-test source.
-- Camera permission dialog remains only in the Live route; CI passed on code SHA 2c847644, but Android instrumentation tests were not run and physical-device acceptance is outstanding.
-- Main at task start: `8f96a7cdbdc26af6fd837d103cf23281d4c12026`; merged PR #2 stabilizes milestone-1 camera/IMU and CI.
-- Existing UI boots directly to camera and only offers teaching-only intrinsics, per-frame FAST detections and an IMU HUD.
-- Physical device acceptance (#4) and persistent Settings (#22)/diagnostics (#23) remain pending.
+- PR #24 (menu/navigation) is merged in `main` at commit `2eae80820c201df023eb13fcba1d93b943bfe31a`; associated Android CI #42019235629 passed.
+- Current settings: `Settings(fastThreshold=20, imuHudIntervalMs=100)` instantiated separately in Live; no persistence or editing.
+- Device acceptance #4 and detailed hardware diagnostics #23 remain open.
 
 ## Next Step
-- PR #24 implements #21. CI #42017116559 passed on code SHA 2c847644 (assembleDebug, JVM tests, lint, ktlint, AndroidTest APK assembly). Review PR and perform hardware UI acceptance (#4); keep persistent Settings and diagnostics for #22/#23.
-
-## Assumptions
-- Camera intrinsics are uncalibrated educational defaults.
-- Camera and IMU clocks are not validated for sensor fusion.
-- The HUD is rate-limited to ~10 Hz; it is not a full-rate IMU recorder.
+- Implement #22 on a dedicated branch and open a small PR. Keep original training caveats: arbitrary monocular scale and no camera/IMU clock synchronization.
