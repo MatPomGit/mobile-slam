@@ -12,8 +12,8 @@
 ## Current user-interface issues
 
 - #21: startup menu, typed navigation, About, read-only Settings overview and Exit implemented in PR #24. Android CI run #42017116559 passed for code SHA 2c847644; on-device acceptance remains pending.
-- #22: persistent editable Settings is not yet implemented.
-- #23: hardware capabilities, timing diagnostics and export are not yet implemented.
+- #22: FAST/IMU HUD settings, schema v1 persistence, save/reset, validation and effect on fresh Live are implemented on a feature branch; CI/device acceptance pending.
+- #23: preliminary permission-free device/accelerometer/gyro overview added, but measured camera/IMU diagnostics and JSON export remain pending.
 
 ## Known issues
 
