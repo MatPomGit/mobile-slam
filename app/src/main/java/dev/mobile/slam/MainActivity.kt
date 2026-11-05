@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -252,6 +253,7 @@ private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorde
     }
 }
 
+@androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
 private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRecorder) {
     val context = LocalContext.current
