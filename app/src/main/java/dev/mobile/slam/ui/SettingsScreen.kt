@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.mobile.slam.frontend.Settings
@@ -82,7 +83,7 @@ fun SettingsScreen(
         OutlinedTextField(
             value = fastInput,
             onValueChange = { fastInput = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("fastThresholdInput"),
             label = { Text("Próg FAST (1–255)") },
             isError = !fastValid,
             singleLine = true,
@@ -98,7 +99,7 @@ fun SettingsScreen(
         OutlinedTextField(
             value = imuInput,
             onValueChange = { imuInput = it },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("imuHudInput"),
             label = { Text("Odświeżanie HUD (100–1000 ms)") },
             isError = !imuValid,
             singleLine = true,
@@ -122,7 +123,11 @@ fun SettingsScreen(
                 Text(if (busy) "Zapisywanie…" else "Zapisz i zastosuj")
             }
             OutlinedButton(
-                onClick = onReset,
+                onClick = {
+                    fastInput = Settings.DEFAULT_FAST_THRESHOLD.toString()
+                    imuInput = Settings.DEFAULT_IMU_HUD_INTERVAL_MS.toString()
+                    onReset()
+                },
                 enabled = !busy,
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp),
             ) {
