@@ -133,7 +133,9 @@ internal object ChessboardCalibrator {
             }
             if (detected.size < spec.minViews) {
                 return ChessboardResult(
-                    null, detected.size, rejected,
+                    null,
+                    detected.size,
+                    rejected,
                     "Niewystarczająca liczba różnorodnych zdjęć z pełną szachownicą.",
                 )
             }
@@ -143,8 +145,13 @@ internal object ChessboardCalibrator {
             val translations = mutableListOf<Mat>()
             try {
                 val rms = Calib3d.calibrateCamera(
-                    objects, detected, Size(width.toDouble(), height.toDouble()),
-                    camera, distort, rotations, translations,
+                    objects,
+                    detected,
+                    Size(width.toDouble(), height.toDouble()),
+                    camera,
+                    distort,
+                    rotations,
+                    translations,
                     Calib3d.CALIB_FIX_K4 or Calib3d.CALIB_FIX_K5 or Calib3d.CALIB_FIX_K6,
                 )
                 val fx = camera.get(0, 0)[0]
@@ -159,19 +166,32 @@ internal object ChessboardCalibrator {
                     fx < width * 0.1 || fy < height * 0.1 ||
                     fx > width * 10.0 || fy > height * 10.0
                 ) {
-                    return ChessboardResult(null, detected.size, rejected, "RMS lub ogniskowe poza zakresem jakości.")
+                    return ChessboardResult(
+                        null,
+                        detected.size,
+                        rejected,
+                        "RMS lub ogniskowe poza zakresem jakości.",
+                    )
                 }
                 val profile = MeasuredCalibration(
                     cameraId = cameraId,
                     referenceWidth = width,
                     referenceHeight = height,
                     referenceCrop = CalibrationCrop(0, 0, width, height),
-                    fx = fx, fy = fy, cx = cx, cy = cy,
+                    fx = fx,
+                    fy = fy,
+                    cx = cx,
+                    cy = cy,
                     distortion = coefficients,
                     rmsReprojectionPx = rms,
                     provenance = CalibrationProvenance.CHESSBOARD_MEASURED,
                 )
-                return ChessboardResult(profile, detected.size, rejected, "Pomiary obliczone; zweryfikuj tor kamery.")
+                return ChessboardResult(
+                    profile,
+                    detected.size,
+                    rejected,
+                    "Pomiary obliczone; zweryfikuj tor kamery.",
+                )
             } finally {
                 camera.release()
                 distort.release()
@@ -194,7 +214,10 @@ internal object ChessboardCalibrator {
         ) return null
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        val readable = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds); true } ?: false
+        val readable = resolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, bounds)
+            true
+        } ?: false
         if (!readable) return null
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var scale = 1
