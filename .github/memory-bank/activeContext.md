@@ -1,29 +1,20 @@
-# Active context — Milestone 2 frame/pipeline contracts (#7, 2026-11-05)
+# Active context — M2 pyramidal KLT tracking (Issue #8, 2026-11-05)
 
-## Goal and prior state
-Milestone 1 hardware evidence was recorded on Samsung SM-S938B (Android 17): CameraX 640×480, 30.013 Hz from timestamps, processing median 2.088 ms / p95 3.382 ms; explicit IMU callbacks measured at 118.725 Hz accel and 47.490 Hz gyro. Camera source REALTIME is not temporal alignment calibration. PR #29 has merged at 32b219e; M1 device acceptance #4 remains open.
+## Goal
+Build the first actual temporal correspondence stage after PR #30 was merged to main (0814438). Preserve the M1 CameraX, FAST, IMU and device-diagnostics behavior while distinguishing per-frame detections from tracked features.
 
-## Ordered plan (reviewed against systemPatterns.md)
-1. Define immutable metadata/geometry, stable feature/track identifiers, tracking state, pose, map point, keyframe and metrics in `frontend`. Use image-coordinate pixels and a documented world←camera pose convention, with non-metric monocular translation scale.
-2. Implement strict per-session frame ordering and geometry continuity, preserving CameraX KEEP_ONLY_LATEST (no secondary unbounded image queue). Introduce a latest-only UI snapshot dispatcher to prevent Compose queue growth.
-3. Integrate the ordering gate and dispatcher into `CameraAnalyzer`; retain the existing FAST detection/preview behavior and processing on its existing single worker thread; ensure stale UI callbacks are suppressed on disposal.
-4. Add deterministic JVM tests for ordering, geometry resets, dispatch coalescing, closure, and tracking state transitions. Do not introduce real KLT tracking until #8.
-5. Update README, system patterns, progress and this active context; verify the exact PR head via Android CI assemble/unit/lint/ktlint/AndroidTest compile. Real-device validation remains separate.
+## Ordered plan (self-reviewed against systemPatterns.md)
+1. Extend immutable Settings with validated KLT/FAST selection thresholds (defaults only; UI persistence remains for FAST/HUD). No new dependencies or Gradle modules.
+2. Add a pure JVM-testable track manager: stable IDs and ages, crop/bounds, quality gates, spatial distribution, bounded selection, reset on geometry/time discontinuity.
+3. Add a serial-thread OpenCV tracker using pyramidal LK, forward-backward consistency and bounded lifetime for previous grayscale Mat. Keep native Mats entirely on analysis executor.
+4. Integrate with CameraAnalyzer frame segment IDs. Publish immutable tracking snapshots and show separate counts/overlays for newly seeded versus tracked features; no pose/map/synchronization claims.
+5. Add deterministic JVM tests; validate Android assemble/unit/lint/ktlint/AndroidTest compile on exact PR head. Update README/systemPatterns/progress; link open device-acceptance tasks.
 
-## Technical invariants and risks
-- No `org.opencv.core.Mat` or mutable image arrays in cross-thread immutable DTOs; current Y-plane copy and native Mat/MatOfKeyPoint remain owned and released on analyzer thread.
-- Camera timestamp in ns is treated as opaque unless source is explicitly REALTIME; never pair latest Camera and IMU samples by accident.
-- The frame gate accepts strictly increasing positive ns timestamps per session and starts new sequence when image geometry changes. A session restarts with a new analyzer.
-- Latest UI dispatcher holds at most one pending immutable snapshot and at most one scheduled runnable; it drops stale samples, is cancellable and never calls UI after closing.
-- Frame pose and metric scale are unavailable at M1; type contracts must not imply reconstructed geometry or calibrated intrinsics.
-- This PR changes foundational code while preserving screen behavior. CI compilation is required before merge; on-device tests remain open.
-
-## Acceptance
-Zero change in student-visible preview and HUD semantics; invalid timestamps do not reach vision processing; bounded snapshot delivery; deterministic unit tests; verified Android CI head; docs and Memory Bank aligned. Milestone #7 can then unblock #8 KLT.
-
-## Implementation completed in branch
-- Added `frontend/PipelineContracts.kt` for scalar metadata, geometry/crop, track/status, state machine, world-from-camera pose, map/keyframe and counters.
-- Added `FrameOrderGate` and `LatestSnapshotDispatcher`; integrated both into `sensors/CameraAnalyzer.kt`.
-- MainActivity schedules analyzer.close() after unbinding, on the serial analysis executor; no additional dependencies or image queues.
-- JVM regressions cover strictly increasing timestamps, duplicate/negative rejection, geometry segments and reset, newest-only delivery/close, and state-machine transitions.
-- README and Memory Bank updated. Android CI still required on exact new PR SHA; physical-device tests for #4 and native tracking #8 remain separate.
+## Technical risks and acceptance
+- CameraX KEEP_ONLY_LATEST stays the sole image acquisition buffer. No extra asynchronous worker and no state shared across background and main threads.
+- OpenCV LK requires >=2 consecutive gray frames with consistent geometry; reset across new segment or >250 ms gap, and release old grayscale Mat exactly once.
+- Forward and backward statuses and finite/error/bounds checks must all pass; no fabricated stable IDs from FAST proximity alone.
+- New seeds are distributed across crop cells, capped at maximum track count and separated from tracked points.
+- Frame/track coordinates are unrotated ImageProxy pixels; existing PreviewCoordinates handles overlay transformation.
+- Tracked KLT points are not PnP inliers, 3D map points, or globally localized pose. Exact APK/device validation #4 remains open.
+- CI is required before merge. If test/compile fails, fix within the same PR.
