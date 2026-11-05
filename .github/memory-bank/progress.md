@@ -23,6 +23,9 @@
 
 ## Changelog
 
+- 2026-11-05 — PR #29 merged on 32b219e after green exact-head CI; #4 hardware acceptance remains open.
+- 2026-11-05 — M2 #7 branch introduces immutable contracts, frame timestamp/order gate, bounded latest-only UI dispatch, analyzer disposal and JVM regression tests. Awaiting exact-head PR CI.
+
 - 2026-11-05 — Measured SM-S938B hardware JSON added to device-tests report; six checklist cases remain NOT_TESTED. PR #29 prior head CI green; new documentation head requires its own validation.
 
 - 2026-11-05 — First partial physical-device evidence documented; Live permission checks added for resume, hardware inventory sections made collapsible; CI verification and physical acceptance #4 still pending.
