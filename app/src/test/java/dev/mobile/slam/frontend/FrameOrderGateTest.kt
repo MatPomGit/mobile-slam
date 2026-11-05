@@ -1,8 +1,8 @@
 package dev.mobile.slam.frontend
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class FrameOrderGateTest {
