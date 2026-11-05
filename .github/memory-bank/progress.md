@@ -3,7 +3,7 @@
 ## Milestones
 
 - [x] Milestone 0 — Agent instructions and complete Memory Bank bootstrap.
-- [ ] Milestone 1 — CameraX + IMU, intrinsics and keypoint overlay, plus main menu/navigation PR in progress (#21). Android CI was verified for merged PR #2; physical-device acceptance remains.
+- [ ] Milestone 1 — CameraX + IMU, FAST overlay, menu/navigation, persisted Settings and hardware diagnostics implemented; physical-device acceptance #4 and final CI repair remain.
 - [ ] Milestone 2 — KLT tracking, two-view initialization and point-cloud viewer.
 - [ ] Milestone 3 — PnP tracking, keyframes, map growth, trajectory and charts.
 - [ ] Milestone 4 — Step-by-step mode, session recording/replay and Settings.
@@ -11,9 +11,9 @@
 
 ## Current user-interface issues
 
-- #21: startup menu, typed navigation, About, read-only Settings overview and Exit implemented in PR #24. Android CI run #42017116559 passed for code SHA 2c847644; on-device acceptance remains pending.
-- #22: FAST/IMU HUD settings, schema v1 persistence, save/reset, validation and effect on fresh Live are implemented on a feature branch; CI/device acceptance pending.
-- #23: stacked diagnostic PR builds on #25: permission-free Android/Camera2/SensorManager inventory; bounded real CameraX image/processing metrics; consented IMU callback sampling; clock-domain safety; schema-v1 local JSON export and tests. CI and physical-device validation still pending.
+- #21: main menu and navigation merged in PR #24; on-device acceptance remains pending.
+- #22: persisted FAST/IMU Settings merged in PR #25 (CI #42031397100 PASS); device acceptance pending.
+- #23: diagnostics merged in PR #26, but main CI #42048086684 FAILED on Camera2Interop lint; scoped hotfix branch adds explicit AndroidX opt-in. Physical-device qualification remains #4.
 
 ## Known issues
 
@@ -22,6 +22,8 @@
 - Current FAST detections are independent per-frame features, not pose or map estimates.
 
 ## Changelog
+
+- 2026-11-05 — PRs #25 and #26 merged; the #26 head and main run fail Android Lint on unacknowledged experimental Camera2Interop. Hotfix branch adds scoped androidx.annotation.OptIn; CI pending.
 
 - 2026-11-04 — Initial project guidance, memory bank, CameraX/FAST/IMU HUD and intrinsics.
 - 2026-11-04 — First build verification blocked by missing Android SDK / Google Maven in task runner.
