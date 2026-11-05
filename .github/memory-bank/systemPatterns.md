@@ -14,6 +14,10 @@ Camera analysis uses one dedicated serial executor; the analyzer posts snapshot 
 
 Bind preview and image analysis with a shared `UseCaseGroup` and `PreviewView.viewPort`. Use `ImageProxy.cropRect` and `rotationDegrees` when projecting detector points into the preview. Release only the use cases owned by the screen; shut down the analyzer executor and unregister IMU on lifecycle stop. Keep algorithm thresholds in `Settings`, UI strings Polish, and source/comments English. Public classes have KDoc with mathematics when relevant.
 
+## Navigation and screen lifecycles
+
+The single-Activity Compose app uses a typed `ui/AppDestination` enum for all menu routes and a small `AppNavigation` availability guard. Menu, Settings overview and About are lightweight screens that require no camera permission. Live screen and its camera/IMU resources exist only while the Live route is composed. Back navigates to the main menu, and Exit finishes the Activity. Unimplemented destinations are rendered as disabled buttons; their presence does not imply implementation. Persistent Settings (#22) and hardware diagnostics (#23) remain separate follow-up work.
+
 ## Decisions
 
 - 2026-11-04 — Single app module: simple first-milestone foundation rather than premature multi-module decomposition.
@@ -22,3 +26,4 @@ Bind preview and image analysis with a shared `UseCaseGroup` and `PreviewView.vi
 - 2026-11-04 — Shared UseCaseGroup/ViewPort with crop-aware projection: prevents misaligned FAST overlay across supported rotations/crops.
 - 2026-11-04 — Lifecycle-managed IMU, SENSOR_DELAY_GAME and rate-limited HUD: minimize power and UI workload, while keeping per-sensor timestamps.
 - 2026-11-04 — GitHub Actions assemble/unit/lint/ktlint gates: validation should fail before an uncompilable commit is merged.
+- 2026-11-05 — Typed Compose navigation without a new dependency: minimize M1 changes and enforce disabled future modes in both UI and route guard.
