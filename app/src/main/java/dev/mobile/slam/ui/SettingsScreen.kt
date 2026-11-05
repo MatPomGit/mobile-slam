@@ -107,8 +107,11 @@ fun SettingsScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             supportingText = {
                 Text(
-                    if (imuValid) "Dotyczy tylko interfejsu (maks. 10 Hz), nie szybkości sensorów ani synchronizacji."
-                    else "Podaj czas w milisekundach: 100–1000.",
+                    if (imuValid) {
+                        "Dotyczy tylko interfejsu (maks. 10 Hz), nie szybkości sensorów ani synchronizacji."
+                    } else {
+                        "Podaj czas w milisekundach: 100–1000."
+                    },
                 )
             },
         )
