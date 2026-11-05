@@ -5,6 +5,7 @@
 - UI/vision: Compose BOM 2025.03.00, CameraX 1.4.2, OpenCV Android 4.10.0, kotlinx-coroutines-android 1.10.1 and Preferences DataStore 1.1.4.
 - Android: minSdk 26, targetSdk 34, compileSdk 35, build tools 35.0.0.
 - Device: rear camera, optional accelerometer/gyroscope; CameraX PreviewView uses COMPATIBLE mode to draw Compose overlays above the preview.
+- Hardware diagnostics: Android Camera2 characteristics, SensorManager metadata and consented event sampling, CameraX ImageProxy frame observations, SystemClock.elapsedRealtimeNanos, org.json schema-v1 SAF export; no added dependencies.
 - Build/test: `./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest`. AndroidTest compilation is not an executed emulator/device test. Use `./gradlew :app:ktlintFormat` only for explicit formatting fixes.
 - CI: `.github/workflows/android-ci.yml` installs Android SDK platform/build tools 35, executes Gradle with `--continue` on PRs, `main` and `fix/**` pushes, and uploads lint/test reports plus an installable debug APK. Run #41813784899 passed all checks on commit fb46d380.
 - CI #42017116559 passed for code SHA 2c847644 (Android debug APK, JVM tests, lint, ktlint and AndroidTest APK compile). Navigation: typed in-app Compose screen switch (no Navigation library), Android BuildConfig version enabled. Device acceptance includes menu→live→menu, permission timing, back/finish, orientation/crop overlay, IMU/camera lifecycle and clocks. No hardware acceptance evidence is recorded yet.
