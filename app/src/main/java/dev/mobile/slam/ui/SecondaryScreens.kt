@@ -31,7 +31,7 @@ fun HardwareOverviewScreen(onBack: () -> Unit) {
     val accelerometer = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     val gyroscope = manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-    InfoScreenLayout(title = "Parametry sprzętowe", onBack = onBack) {
+    InfoScreenLayout(title = "Parametry sprzętowe", onBack = onBack, backLabel = "Powrót do ustawień") {
         Text("Dane zgłoszone przez system Android (bez uruchamiania kamery ani rejestrowania IMU).")
         Text("Producent: ${Build.MANUFACTURER}")
         Text("Model: ${Build.MODEL}")
@@ -70,7 +70,12 @@ fun AboutScreen(version: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun InfoScreenLayout(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+private fun InfoScreenLayout(
+    title: String,
+    onBack: () -> Unit,
+    backLabel: String = "Powrót do menu",
+    content: @Composable () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -81,7 +86,7 @@ private fun InfoScreenLayout(title: String, onBack: () -> Unit, content: @Compos
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text("Powrót do menu")
+            Text(backLabel)
         }
         Text(title, style = MaterialTheme.typography.headlineSmall)
         content()
