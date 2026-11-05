@@ -2,7 +2,7 @@
 
 - Build: Kotlin 2.1.20, Android Gradle Plugin 8.8.2, Gradle 8.10.2 (wrapper), Kotlin DSL, JDK 17.
 - Checks: ktlint-gradle 12.3.0, JUnit 4.13.2, Compose Android instrumentation tests (AndroidX Test runner), Android lint and GitHub Actions (ubuntu-latest).
-- UI/vision: Compose BOM 2025.03.00, CameraX 1.4.2, OpenCV Android 4.10.0, coroutines 1.10.1 (planned).
+- UI/vision: Compose BOM 2025.03.00, CameraX 1.4.2, OpenCV Android 4.10.0, kotlinx-coroutines-android 1.10.1 and Preferences DataStore 1.1.4.
 - Android: minSdk 26, targetSdk 34, compileSdk 35, build tools 35.0.0.
 - Device: rear camera, optional accelerometer/gyroscope; CameraX PreviewView uses COMPATIBLE mode to draw Compose overlays above the preview.
 - Build/test: `./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest`. AndroidTest compilation is not an executed emulator/device test. Use `./gradlew :app:ktlintFormat` only for explicit formatting fixes.
