@@ -1,30 +1,29 @@
-# Active context — device-test hardening (2026-11-05)
+# Active context — Milestone 2 frame/pipeline contracts (#7, 2026-11-05)
 
-## Goal
-Use first physical-device evidence (Samsung SM-S938B, Android 17, 20-second Live recording and hardware inventory screenshots) to stabilize Milestone 1. Do not misclassify visual evidence as completed hardware acceptance.
+## Goal and prior state
+Milestone 1 hardware evidence was recorded on Samsung SM-S938B (Android 17): CameraX 640×480, 30.013 Hz from timestamps, processing median 2.088 ms / p95 3.382 ms; explicit IMU callbacks measured at 118.725 Hz accel and 47.490 Hz gyro. Camera source REALTIME is not temporal alignment calibration. PR #29 has merged at 32b219e; M1 device acceptance #4 remains open.
 
-## Scope and plan
-1. Preserve the original read-only hardware report fields and permission-free diagnostics entry, but make the long Camera2/sensor inventory navigable with collapsible sections and accessible expansion labels.
-2. Revalidate CAMERA permission on each Live lifecycle ON_RESUME; when permission was revoked outside the app, dispose the camera pipeline and offer an explicit request action. Keep the first-entry camera permission flow.
-3. Add a dated physical-device evidence report with observed, unverified and pending tests. Update README and progress.
-4. Run available local verification; require Android CI assembleDebug, unit tests, lint, ktlint and AndroidTest APK compilation on the exact PR head.
+## Ordered plan (reviewed against systemPatterns.md)
+1. Define immutable metadata/geometry, stable feature/track identifiers, tracking state, pose, map point, keyframe and metrics in `frontend`. Use image-coordinate pixels and a documented world←camera pose convention, with non-metric monocular translation scale.
+2. Implement strict per-session frame ordering and geometry continuity, preserving CameraX KEEP_ONLY_LATEST (no secondary unbounded image queue). Introduce a latest-only UI snapshot dispatcher to prevent Compose queue growth.
+3. Integrate the ordering gate and dispatcher into `CameraAnalyzer`; retain the existing FAST detection/preview behavior and processing on its existing single worker thread; ensure stale UI callbacks are suppressed on disposal.
+4. Add deterministic JVM tests for ordering, geometry resets, dispatch coalescing, closure, and tracking state transitions. Do not introduce real KLT tracking until #8.
+5. Update README, system patterns, progress and this active context; verify the exact PR head via Android CI assemble/unit/lint/ktlint/AndroidTest compile. Real-device validation remains separate.
 
-## Risks and acceptance
-- No new dependency, permissions, image recording, networking, or SLAM-stage claims.
-- The UI must continue to display all provenance-labelled hardware fields; collapsing must not suppress JSON export data.
-- Permission revocation must stop the Live camera path promptly on resume, not assume the stale Compose state is valid.
-- Observed FAST detections must not be labelled tracks/pose/map. A short screen recording cannot verify camera alignment, clock synchronization or long-session stability.
-- Close hardware acceptance #4 only after repeatable on-device tests (grant/deny/revoke, orientations, sensor lifecycle, 5–10 minutes, timestamp-domain comparison) and a JSON report.
+## Technical invariants and risks
+- No `org.opencv.core.Mat` or mutable image arrays in cross-thread immutable DTOs; current Y-plane copy and native Mat/MatOfKeyPoint remain owned and released on analyzer thread.
+- Camera timestamp in ns is treated as opaque unless source is explicitly REALTIME; never pair latest Camera and IMU samples by accident.
+- The frame gate accepts strictly increasing positive ns timestamps per session and starts new sequence when image geometry changes. A session restarts with a new analyzer.
+- Latest UI dispatcher holds at most one pending immutable snapshot and at most one scheduled runnable; it drops stale samples, is cancellable and never calls UI after closing.
+- Frame pose and metric scale are unavailable at M1; type contracts must not imply reconstructed geometry or calibrated intrinsics.
+- This PR changes foundational code while preserving screen behavior. CI compilation is required before merge; on-device tests remain open.
 
-## Implementation status
-- Added Live CAMERA permission recheck at ON_START and ON_RESUME.
-- Made hardware inventory sections expandable, defaulting to the first device section open.
-- Added an Android UI test for expansion/collapse and corrected the hardware screen title assertion.
-- Documented partial real-phone evidence in `docs/device-tests/sm-s938b-2026-11-05.md`.
-- Local Android build unavailable (no Android SDK/Gradle dependency cache); rely on the PR's exact-head CI before merge. Physical lifecycle tests and exported diagnostics remain pending in #4.
+## Acceptance
+Zero change in student-visible preview and HUD semantics; invalid timestamps do not reach vision processing; bounded snapshot delivery; deterministic unit tests; verified Android CI head; docs and Memory Bank aligned. Milestone #7 can then unblock #8 KLT.
 
-## Additional physical-device export (2026-11-05)
-- User supplied schema-v1 JSON at 2026-11-05T16:31:21Z from Samsung SM-S938B / app 0.1.0: active CameraX 0, ImageProxy 640x480 at 90 degrees, cropRect (25,0,616,480), 1261 recorded callbacks, timestamp-derived 30.013 FPS, processing p50 2.088 ms/p95 3.382 ms.
-- Explicit IMU diagnostic: 4.936 s, 582 accel callbacks (118.725 Hz), 233 gyro callbacks (47.490 Hz); no nonmonotonic timestamps. Timestamp p95 jitter exported as 0.000 ms needs precision/measurement scrutiny.
-- Camera source REALTIME permits clock-domain comparison but does not establish alignment. The last camera sample precedes export elapsedRealtime by 30.701 s and cannot be paired with latest IMU samples to infer offset.
-- Exact APK SHA and all six operator validation checklist items remain unverified. Report appended; CI for updated PR head should pass before merge.
+## Implementation completed in branch
+- Added `frontend/PipelineContracts.kt` for scalar metadata, geometry/crop, track/status, state machine, world-from-camera pose, map/keyframe and counters.
+- Added `FrameOrderGate` and `LatestSnapshotDispatcher`; integrated both into `sensors/CameraAnalyzer.kt`.
+- MainActivity schedules analyzer.close() after unbinding, on the serial analysis executor; no additional dependencies or image queues.
+- JVM regressions cover strictly increasing timestamps, duplicate/negative rejection, geometry segments and reset, newest-only delivery/close, and state-machine transitions.
+- README and Memory Bank updated. Android CI still required on exact new PR SHA; physical-device tests for #4 and native tracking #8 remain separate.
