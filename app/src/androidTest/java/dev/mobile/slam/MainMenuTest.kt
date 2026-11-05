@@ -2,8 +2,12 @@ package dev.mobile.slam
 
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,12 +26,27 @@ class MainMenuTest {
     }
 
     @Test
-    fun settingsAreReachableWithoutOpeningLiveCamera() {
+    fun settingsAndHardwareInformationAreReachableWithoutOpeningCamera() {
         rule.onNodeWithText("Ustawienia").performClick()
-        rule.onNodeWithText("Detekcja FAST: próg 20").assertExists()
-        rule.onNodeWithText("Parametry sprzętowe i diagnostyka · w przygotowaniu").assertIsNotEnabled()
+        rule.waitUntil(10_000) {
+            rule.onAllNodesWithText("Detekcja cech FAST").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithText("Parametry sprzętowe i diagnostyka").performScrollTo().performClick()
+        rule.onNodeWithText("Parametry sprzętowe").assertExists()
+        rule.onNodeWithText("Powrót do ustawień").performClick()
+        rule.onNodeWithText("Ustawienia").assertExists()
         rule.onNodeWithText("Powrót do menu").performClick()
         rule.onNodeWithText("MOBILE SLAM").assertExists()
+    }
+
+    @Test
+    fun invalidFastThresholdDisablesSave() {
+        rule.onNodeWithText("Ustawienia").performClick()
+        rule.waitUntil(10_000) {
+            rule.onAllNodesWithText("Detekcja cech FAST").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag("fastThresholdInput").performTextReplacement("999")
+        rule.onNodeWithText("Zapisz i zastosuj").assertIsNotEnabled()
     }
 
     @Test

@@ -16,7 +16,11 @@ Bind preview and image analysis with a shared `UseCaseGroup` and `PreviewView.vi
 
 ## Navigation and screen lifecycles
 
-The single-Activity Compose app uses a typed `ui/AppDestination` enum for all menu routes and a small `AppNavigation` availability guard. Menu, Settings overview and About are lightweight screens that require no camera permission. Live screen and its camera/IMU resources exist only while the Live route is composed. Back navigates to the main menu, and Exit finishes the Activity. Unimplemented destinations are rendered as disabled buttons; their presence does not imply implementation. Persistent Settings (#22) and hardware diagnostics (#23) remain separate follow-up work.
+The single-Activity Compose app uses a typed `ui/AppDestination` enum for all menu routes and a small `AppNavigation` availability guard. Menu, Settings overview and About are lightweight screens that require no camera permission. Live screen and its camera/IMU resources exist only while the Live route is composed. Back navigates to the main menu, and Exit finishes the Activity. Unimplemented destinations are rendered as disabled buttons; their presence does not imply implementation. Settings are shared via an immutable app-level snapshot backed by Preferences DataStore schema v1. Valid FAST [1,255] and HUD [100,1000] ms settings apply on next Live entry. Hardware overview is read-only and permission-free; full validation (#23) remains separate.
+
+## Hardware diagnostics
+
+Hardware information is collected into immutable `DiagnosticSection`/`DiagnosticField` values with explicit reported, requested, observed and unavailable provenance. `HardwareInventory` reads Camera2/SensorManager/Build metadata without opening camera or subscribing to IMU on screen entry. Scalar-only `CameraObservationRecorder` records bounded ImageProxy geometry, timing and analysis durations from Live's existing analyzer; the active camera ID comes from bound CameraX Camera2Interop. `ImuValidationSession` subscribes only after an explicit action and unregisters at stop, onDispose or ON_STOP; its full callback timestamps are independent from the 10 Hz teaching HUD. `HardwareJson` exports schema v1 locally through SAF. Unknown Camera2 timestamp source blocks cross-camera/IMU clock comparisons; REALTIME does not imply synchronization calibration.
 
 ## Decisions
 

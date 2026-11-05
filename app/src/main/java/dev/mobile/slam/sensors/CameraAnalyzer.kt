@@ -1,7 +1,9 @@
 package dev.mobile.slam.sensors
 
+import android.os.SystemClock
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import dev.mobile.slam.diagnostics.FrameObservation
 import dev.mobile.slam.frontend.Settings
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
@@ -32,6 +34,7 @@ internal data class FrameKeypoints(
 internal class CameraAnalyzer(
     private val settings: Settings,
     private val callbackExecutor: Executor,
+    private val onObservation: ((FrameObservation) -> Unit)? = null,
     private val onFrame: (FrameKeypoints) -> Unit,
 ) : ImageAnalysis.Analyzer {
     private var detector: FastFeatureDetector? = null
@@ -39,8 +42,10 @@ internal class CameraAnalyzer(
     private var openCvUnavailable = false
 
     override fun analyze(image: ImageProxy) {
+        val startedNs = SystemClock.elapsedRealtimeNanos()
         val cropRect = image.cropRect
         val crop = FrameCrop(cropRect.left, cropRect.top, cropRect.right, cropRect.bottom)
+        val yPlane = image.planes.firstOrNull()
         try {
             if (!openCvInitialized) {
                 openCvInitialized = true
@@ -90,7 +95,25 @@ internal class CameraAnalyzer(
             openCvUnavailable = true
             publish(errorFrame(image, crop, "Nie udało się uruchomić natywnego modułu OpenCV."))
         } finally {
-            image.close()
+            // Scalar-only diagnostic callback; a failure must never prevent ImageProxy.close().
+            try {
+                onObservation?.invoke(
+                    FrameObservation(
+                        timestampNs = image.imageInfo.timestamp,
+                        widthPx = image.width,
+                        heightPx = image.height,
+                        rotationDegrees = image.imageInfo.rotationDegrees,
+                        crop = "${crop.left},${crop.top},${crop.right},${crop.bottom}",
+                        rowStrideBytes = yPlane?.rowStride,
+                        pixelStrideBytes = yPlane?.pixelStride,
+                        processingDurationNs = SystemClock.elapsedRealtimeNanos() - startedNs,
+                    ),
+                )
+            } catch (_: Exception) {
+                // Diagnostics must not break the teaching camera pipeline.
+            } finally {
+                image.close()
+            }
         }
     }
 

@@ -12,8 +12,8 @@
 ## Current user-interface issues
 
 - #21: startup menu, typed navigation, About, read-only Settings overview and Exit implemented in PR #24. Android CI run #42017116559 passed for code SHA 2c847644; on-device acceptance remains pending.
-- #22: persistent editable Settings is not yet implemented.
-- #23: hardware capabilities, timing diagnostics and export are not yet implemented.
+- #22: FAST/IMU HUD settings, schema v1 persistence, save/reset, validation and effect on fresh Live are implemented on a feature branch; CI/device acceptance pending.
+- #23: stacked diagnostic PR builds on #25: permission-free Android/Camera2/SensorManager inventory; bounded real CameraX image/processing metrics; consented IMU callback sampling; clock-domain safety; schema-v1 local JSON export and tests. CI and physical-device validation still pending.
 
 ## Known issues
 

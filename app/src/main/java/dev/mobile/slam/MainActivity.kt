@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -33,9 +34,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,7 +56,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mobile.slam.calib.CameraIntrinsics
+import dev.mobile.slam.diagnostics.CameraObservationRecorder
 import dev.mobile.slam.frontend.Settings
+import dev.mobile.slam.frontend.SettingsRepository
 import dev.mobile.slam.sensors.CameraAnalyzer
 import dev.mobile.slam.sensors.FrameKeypoints
 import dev.mobile.slam.sensors.ImuSample
@@ -61,9 +66,12 @@ import dev.mobile.slam.sensors.ImuSource
 import dev.mobile.slam.ui.AboutScreen
 import dev.mobile.slam.ui.AppDestination
 import dev.mobile.slam.ui.AppNavigation
+import dev.mobile.slam.ui.HardwareDiagnosticsScreen
 import dev.mobile.slam.ui.MainMenuScreen
-import dev.mobile.slam.ui.SettingsOverviewScreen
+import dev.mobile.slam.ui.SettingsScreen
 import dev.mobile.slam.viz.PreviewCoordinates
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -85,16 +93,35 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AppRoot(onExit: () -> Unit) {
+    val context = LocalContext.current
+    val repository = remember(context.applicationContext) { SettingsRepository(context.applicationContext) }
+    val diagnosticsRecorder = remember { CameraObservationRecorder() }
+    val loaded by repository.snapshots.collectAsState(initial = null)
+    var overrideSettings by remember { mutableStateOf<Settings?>(null) }
+    val effectiveSettings = overrideSettings ?: loaded?.settings
     var destination by rememberSaveable { mutableStateOf(AppDestination.MENU) }
-    val onBack = { destination = AppDestination.MENU }
+    var liveFromDiagnostics by rememberSaveable { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
+    var saveStatus by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
+    val onBack = {
+        destination = when {
+            destination == AppDestination.HARDWARE -> AppDestination.SETTINGS
+            destination == AppDestination.LIVE && liveFromDiagnostics -> AppDestination.HARDWARE
+            else -> AppDestination.MENU
+        }
+    }
     BackHandler(enabled = destination != AppDestination.MENU, onBack = onBack)
 
     when (destination) {
         AppDestination.MENU -> {
             MainMenuScreen(
                 version = BuildConfig.VERSION_NAME,
-                onNavigate = { requested -> destination = AppNavigation.navigate(destination, requested) },
+                onNavigate = { requested ->
+                    if (requested == AppDestination.LIVE) liveFromDiagnostics = false
+                    destination = AppNavigation.navigate(destination, requested)
+                },
                 onExit = onExit,
             )
         }
@@ -107,17 +134,81 @@ private fun AppRoot(onExit: () -> Unit) {
                     Text("Powrót do menu")
                 }
                 Box(modifier = Modifier.weight(1f)) {
-                    SlamScreen()
+                    if (effectiveSettings == null) {
+                        Text("Wczytywanie ustawień…")
+                    } else {
+                        SlamScreen(effectiveSettings, diagnosticsRecorder)
+                    }
                 }
             }
         }
-        AppDestination.SETTINGS -> SettingsOverviewScreen(onBack = onBack)
+        AppDestination.SETTINGS -> {
+            if (effectiveSettings == null) {
+                Text("Wczytywanie ustawień…")
+            } else {
+                SettingsScreen(
+                    settings = effectiveSettings,
+                    busy = saving,
+                    warning = if (overrideSettings == null) loaded?.warning else null,
+                    status = saveStatus,
+                    onSave = { next ->
+                        if (!saving) {
+                            saving = true
+                            saveStatus = null
+                            scope.launch {
+                                try {
+                                    repository.save(next)
+                                    overrideSettings = next
+                                    saveStatus = "Zapisano. Ustawienia zostaną użyte przy otwarciu trybu na żywo."
+                                } catch (cause: Exception) {
+                                    if (cause is CancellationException) throw cause
+                                    saveStatus = "Nie udało się zapisać ustawień. Spróbuj ponownie."
+                                } finally {
+                                    saving = false
+                                }
+                            }
+                        }
+                    },
+                    onReset = {
+                        if (!saving) {
+                            saving = true
+                            saveStatus = null
+                            scope.launch {
+                                try {
+                                    repository.reset()
+                                    overrideSettings = Settings()
+                                    saveStatus = "Przywrócono wartości domyślne."
+                                } catch (cause: Exception) {
+                                    if (cause is CancellationException) throw cause
+                                    saveStatus = "Nie udało się przywrócić ustawień."
+                                } finally {
+                                    saving = false
+                                }
+                            }
+                        }
+                    },
+                    onHardware = { destination = AppDestination.HARDWARE },
+                    onBack = onBack,
+                )
+            }
+        }
+        AppDestination.HARDWARE -> HardwareDiagnosticsScreen(
+            recorder = diagnosticsRecorder,
+            appVersion = BuildConfig.VERSION_NAME,
+            onCameraTest = {
+                liveFromDiagnostics = true
+                destination = AppDestination.LIVE
+            },
+            onBack = onBack,
+        )
         AppDestination.ABOUT -> AboutScreen(version = BuildConfig.VERSION_NAME, onBack = onBack)
         else -> {
-            // Defensive fallback for a future destination restored from saved state.
             MainMenuScreen(
                 version = BuildConfig.VERSION_NAME,
-                onNavigate = { requested -> destination = AppNavigation.navigate(destination, requested) },
+                onNavigate = { requested ->
+                    if (requested == AppDestination.LIVE) liveFromDiagnostics = false
+                    destination = AppNavigation.navigate(destination, requested)
+                },
                 onExit = onExit,
             )
         }
@@ -125,7 +216,7 @@ private fun AppRoot(onExit: () -> Unit) {
 }
 
 @Composable
-private fun SlamScreen() {
+private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorder) {
     val context = LocalContext.current
     var cameraGranted by remember {
         mutableStateOf(
@@ -146,7 +237,7 @@ private fun SlamScreen() {
     }
 
     if (cameraGranted) {
-        LiveSlamScreen()
+        LiveSlamScreen(settings, diagnostics)
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -162,10 +253,9 @@ private fun SlamScreen() {
 }
 
 @Composable
-private fun LiveSlamScreen() {
+private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRecorder) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val settings = remember { Settings() }
     val intrinsics = remember { CameraIntrinsics.default640x480() }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var keypointFrame by remember { mutableStateOf<FrameKeypoints?>(null) }
@@ -173,7 +263,7 @@ private fun LiveSlamScreen() {
     var imuAvailable by remember { mutableStateOf(false) }
     var cameraError by remember { mutableStateOf<String?>(null) }
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, settings.imuHudIntervalMs) {
         val imuSource = ImuSource(context, settings.imuHudIntervalMs * 1_000_000L) { sample ->
             imuSample = sample
         }
@@ -198,7 +288,7 @@ private fun LiveSlamScreen() {
         }
     }
 
-    DisposableEffect(lifecycleOwner, previewView) {
+    DisposableEffect(lifecycleOwner, previewView, settings.fastThreshold) {
         val view = previewView
         if (view == null) {
             onDispose { }
@@ -209,6 +299,7 @@ private fun LiveSlamScreen() {
             val analyzer = CameraAnalyzer(
                 settings = settings,
                 callbackExecutor = ContextCompat.getMainExecutor(context),
+                onObservation = diagnostics::observe,
             ) { frame ->
                 if (!disposed.get()) {
                     keypointFrame = frame
@@ -254,10 +345,17 @@ private fun LiveSlamScreen() {
                     if (previousPreview != null && previousAnalysis != null) {
                         provider.unbind(previousPreview, previousAnalysis)
                     }
-                    provider.bindToLifecycle(
+                    val camera = provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         useCases,
+                    )
+                    diagnostics.cameraBound(
+                        try {
+                            Camera2CameraInfo.from(camera.cameraInfo).cameraId
+                        } catch (_: Exception) {
+                            null
+                        },
                     )
                     boundPreview = preview
                     boundAnalysis = analysis

@@ -19,6 +19,7 @@ enum class AppDestination(
     RESULTS("Wyniki i wykresy", false, "M3"),
     ARCORE("Porównanie z ARCore", false, "opcjonalnie"),
     SETTINGS("Ustawienia", true),
+    HARDWARE("Parametry sprzętowe", true),
     ABOUT("O aplikacji", true),
     ;
 

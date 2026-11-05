@@ -22,6 +22,7 @@ class AppNavigationTest {
                 AppDestination.MENU,
                 AppDestination.LIVE,
                 AppDestination.SETTINGS,
+                AppDestination.HARDWARE,
                 AppDestination.ABOUT,
             ),
             enabled,

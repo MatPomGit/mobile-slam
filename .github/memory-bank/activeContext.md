@@ -1,24 +1,27 @@
 # Active context
 
-## Current Plan (2026-11-05: Main menu, Issue #21)
-- Goal: replace immediate live-camera startup with a Polish, accessible main menu and capability-gated navigation; preserve the current live FAST/IMU demo and avoid requesting camera permission on launch.
-- Scope: `MainActivity.kt` routing, `ui/AppDestination.kt`, `ui/MainMenuScreen.kt`, `ui/SecondaryScreens.kt`, narrow build/test setup, README, tests and Memory Bank. Do **not** implement persistent settings or hardware diagnostics (#22/#23), nor new SLAM algorithms.
-- Steps: (1) define typed routes and their explicit enabled states; (2) implement responsive menu with a replaceable logo slot and all future modes disabled; (3) route to live camera with permission requested only on entry, show Settings overview and About, handle Back and Finish; (4) add pure navigation tests and Android UI smoke coverage; (5) run Android CI, correct regressions, update README and Memory Bank.
-- Risks: camera lifecycle and permission behavior across navigation/rotation require physical-device confirmation; Android UI instrumentation requires an emulator/device and cannot be claimed from JVM CI alone.
-- Tests: `./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest` in GitHub Actions (if toolchain supports it), plus manual phone checks for menu/live/menu, permission denied, Back and Exit.
-- Acceptance: main menu is shown without camera/IMU acquisition, live remains functional, all planned modes visibly disabled until implemented, Settings/About/Exit navigation is functional, programmatic route gating is tested, CI passes, no untested hardware claims.
+## Current plan — Issue #23 hardware validation (2026-11-05)
+- **Goal:** replace the preliminary hardware overview with a factually sourced, read-only capability inventory; implement consented IMU sampling diagnostics, per-frame CameraX observations, timestamp-domain safety and a versioned local JSON report.
+- **Branch/dependency:** `feat/hardware-validation-m1-20261105` branches from open PR #25 (`feat/settings-persistence-m1-20261105`); open a **stacked PR** against the parent branch. Do not merge or rewrite PR #25 while implementing diagnostics.
+- **Files:** new `diagnostics/` immutable DTOs, API-bound inventory collector, bounded synchronized camera/IMU observations, report writer; replace `ui/HardwareOverviewScreen`, wire `MainActivity` and `CameraAnalyzer`; unit/instrumented tests, README and Memory Bank.
+- **Steps:** (1) typed capability rows with reported/configured/observed/unavailable provenance, clock-source gate and bounded interval statistics; (2) read Android/Camera2/SensorManager data with permission/API guards and missing-data reasons; (3) collect real CameraX metadata at frame-analysis stage and explicit, separately sampled IMU callbacks in a consented, lifecycle-scoped test; (4) display sections, run/stop controls, guided checklist and offline SAF JSON export; (5) test pure transforms and JSON on Android; verify Android CI at exact PR SHA.
+- **Safety:** no camera open or sensor subscription on entering diagnostics; Camera2 properties are hardware reported, not necessarily the active CameraX stream; only bound-camera ID identifies the active lens. Never compare CAMERA to IMU/elapsed time if camera `SENSOR_INFO_TIMESTAMP_SOURCE` is `UNKNOWN`; REALTIME enables same clock-domain comparisons but **does not prove sync calibration**. Do not export unique identifiers, raw images, serials, fingerprints, locations or sensitive user data. Unknown metrics shown as `nie zmierzono`, not PASS.
+- **Performance:** camera observer stores only bounded scalar timestamps/geometry; IMU test stores bounded timestamp deltas per sensor and unregisters on screen disposal/background. Avoid joining camera and IMU raw samples; no artificial absolute time alignment.
+- **Test strategy:** JVM tests for clock-source gate, sample intervals and bounded history; Android instrumentation JSON export shape/camera-permission-free rendering; CI `:app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest`. Device tests with a real camera/IMU remain #4 until evidence is attached.
+- **Acceptance:** a student can open detailed offline hardware inventory and save a provenance/unit-aware JSON report, run/stop IMU test explicitly, enter Live for actual CameraX metrics, see timestamp limitations and untested checklist items. CI passes; no physical-device acceptance claims without a test report.
 
-## Current State
-- Feature branch now contains typed route gating, adaptive main menu with replaceable logo slot, Live navigation, read-only Settings overview, About, Exit, JVM route tests and Android instrumentation smoke-test source.
-- Camera permission dialog remains only in the Live route; CI passed on code SHA 2c847644, but Android instrumentation tests were not run and physical-device acceptance is outstanding.
-- Main at task start: `8f96a7cdbdc26af6fd837d103cf23281d4c12026`; merged PR #2 stabilizes milestone-1 camera/IMU and CI.
-- Existing UI boots directly to camera and only offers teaching-only intrinsics, per-frame FAST detections and an IMU HUD.
-- Physical device acceptance (#4) and persistent Settings (#22)/diagnostics (#23) remain pending.
+## Current state
+- PR #24 merged, main CI #42019235629 success; PR #25 remains open, CI #42031397100 success, and provides the Settings→Hardware destination.
+- Existing HardwareOverviewScreen shows only Build and accelerometer/gyroscope names. No Camera2 metadata, true measured FPS, synchronized clock checks or export.
+- Full physical-device validation remains issue #4.
 
-## Next Step
-- PR #24 implements #21. CI #42017116559 passed on code SHA 2c847644 (assembleDebug, JVM tests, lint, ktlint, AndroidTest APK assembly). Review PR and perform hardware UI acceptance (#4); keep persistent Settings and diagnostics for #22/#23.
+## Current implementation
+- `diagnostics/DiagnosticsModels.kt`: provenance-aware rows, bounded camera/IMU timestamps, nonmonotonic counts and interval statistics; conservative clock-domain gate.
+- `diagnostics/HardwareInventory.kt`: Android/Camera2/IMU hardware inventory with unavailable reasons, recorded ImageProxy metadata and observed frame cadence/cost.
+- `diagnostics/ImuValidationSession.kt`: explicit, lifecycle-scoped IMU test independent of 10 Hz HUD.
+- `diagnostics/HardwareJson.kt`: locally exported schema-v1 JSON, source labels, units, missing reasons, NOT_TESTED acceptance checklist.
+- `ui/HardwareDiagnosticsScreen.kt`: refresh, start/stop IMU, enter Live for camera test, SAF export. Existing Live CameraAnalyzer publishes scalar-only observations and records actual bound camera ID.
+- JVM clock/interval tests and Android JSON test source; CI and physical-device checks not yet confirmed.
 
-## Assumptions
-- Camera intrinsics are uncalibrated educational defaults.
-- Camera and IMU clocks are not validated for sensor fusion.
-- The HUD is rate-limited to ~10 Hz; it is not a full-rate IMU recorder.
+## Next step
+- Create stacked PR against #25 branch, fix Android CI findings at exact SHA, and keep real-device acceptance #4 explicitly open.
