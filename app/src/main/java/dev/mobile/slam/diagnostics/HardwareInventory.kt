@@ -2,6 +2,7 @@ package dev.mobile.slam.diagnostics
 
 import android.app.ActivityManager
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.ImageFormat
 import android.hardware.Sensor
@@ -40,8 +41,11 @@ internal class HardwareInventory(context: Context) {
                 "Źródła czasu i synchronizacja",
                 listOf(
                     observed("SystemClock.elapsedRealtimeNanos()", SystemClock.elapsedRealtimeNanos(), "ns"),
-                    if (camera.cameraId == null) missing("Źródło czasu aktywnej kamery", "Nie uruchomiono jeszcze trybu na żywo.")
-                    else reported("Źródło czasu aktywnej kamery", source.name),
+                    if (camera.cameraId == null) {
+                        missing("Źródło czasu aktywnej kamery", "Nie uruchomiono jeszcze trybu na żywo.")
+                    } else {
+                        reported("Źródło czasu aktywnej kamery", source.name)
+                    },
                     reported("Interpretacja źródła czasu", ClockDomainSafety.explanation(source)),
                     missing("Dokładność wyrównania ekspozycji i próbek IMU", "Nie przeprowadzono kalibracji czasowej."),
                 ),
@@ -155,14 +159,33 @@ internal class HardwareInventory(context: Context) {
                         reported("Położenie obiektywu", lens),
                         reported("Hardware level", characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)),
                         reported("Orientacja sensora", characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION), "°"),
-                        reported("Fizyczny sensor", physical?.let { "${format(it.width.toDouble())}×${format(it.height.toDouble())}" }, "mm"),
-                        reported("Active array", characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)?.toShortString(), "px"),
+                        reported(
+                            "Fizyczny sensor",
+                            physical?.let { "${format(it.width.toDouble())}×${format(it.height.toDouble())}" },
+                            "mm",
+                        ),
+                        reported(
+                            "Active array",
+                            characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)?.toShortString(),
+                            "px",
+                        ),
                         reported("Ogniskowe z metadanych", focal, "mm"),
                         reported("Rozdzielczości YUV_420_888", sizes, "px"),
                         reported("Zakresy docelowego AE FPS", fps, "fps"),
-                        reported("Dostępne tryby AF", characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES)?.joinToString()),
-                        reported("Dostępne tryby stabilizacji", characteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES)?.joinToString()),
-                        reported("Intrinsics producenta (fx,fy,cx,cy,s)", characteristics.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)?.joinToString { format(it.toDouble()) }),
+                        reported(
+                            "Dostępne tryby AF",
+                            characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES)?.joinToString(),
+                        ),
+                        reported(
+                            "Dostępne tryby stabilizacji",
+                            characteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES)?.joinToString(),
+                        ),
+                        reported(
+                            "Intrinsics producenta (fx,fy,cx,cy,s)",
+                            characteristics.get(CameraCharacteristics.LENS_INTRINSIC_CALIBRATION)?.joinToString {
+                                format(it.toDouble())
+                            },
+                        ),
                         reported("Dystorsja producenta", distortion),
                         reported("Źródło timestampów", clockSource(characteristics).name),
                     ),
@@ -177,20 +200,41 @@ internal class HardwareInventory(context: Context) {
         return DiagnosticSection(
             "Kamera — ostatnia obserwacja ImageAnalysis",
             listOf(
-                if (camera.cameraId != null) observed("ID rzeczywiście związanej kamery CameraX", camera.cameraId)
-                else missing("ID rzeczywiście związanej kamery CameraX", "Tryb na żywo nie został uruchomiony."),
-                if (last != null) observed("Rozdzielczość ImageProxy", "${last.widthPx}×${last.heightPx}", "px")
-                else missing("Rozdzielczość ImageProxy", "Nie przetworzono jeszcze klatki."),
-                if (last != null) observed("Obrót ImageProxy", last.rotationDegrees, "°")
-                else missing("Obrót ImageProxy", "Brak klatek."),
-                if (last != null) observed("CropRect", last.crop, "px")
-                else missing("CropRect", "Brak klatek."),
-                if (last?.rowStrideBytes != null) observed("Y rowStride", last.rowStrideBytes, "B")
-                else missing("Y rowStride", "Brak Y plane."),
-                if (last?.pixelStrideBytes != null) observed("Y pixelStride", last.pixelStrideBytes, "B")
-                else missing("Y pixelStride", "Brak Y plane."),
-                if (last != null) observed("Ostatni znacznik czasu CameraX", last.timestampNs, "ns")
-                else missing("Ostatni znacznik czasu CameraX", "Brak klatek."),
+                if (camera.cameraId != null) {
+                    observed("ID rzeczywiście związanej kamery CameraX", camera.cameraId)
+                } else {
+                    missing("ID rzeczywiście związanej kamery CameraX", "Tryb na żywo nie został uruchomiony.")
+                },
+                if (last != null) {
+                    observed("Rozdzielczość ImageProxy", "${last.widthPx}×${last.heightPx}", "px")
+                } else {
+                    missing("Rozdzielczość ImageProxy", "Nie przetworzono jeszcze klatki.")
+                },
+                if (last != null) {
+                    observed("Obrót ImageProxy", last.rotationDegrees, "°")
+                } else {
+                    missing("Obrót ImageProxy", "Brak klatek.")
+                },
+                if (last != null) {
+                    observed("CropRect", last.crop, "px")
+                } else {
+                    missing("CropRect", "Brak klatek.")
+                },
+                if (last?.rowStrideBytes != null) {
+                    observed("Y rowStride", last.rowStrideBytes, "B")
+                } else {
+                    missing("Y rowStride", "Brak Y plane.")
+                },
+                if (last?.pixelStrideBytes != null) {
+                    observed("Y pixelStride", last.pixelStrideBytes, "B")
+                } else {
+                    missing("Y pixelStride", "Brak Y plane.")
+                },
+                if (last != null) {
+                    observed("Ostatni znacznik czasu CameraX", last.timestampNs, "ns")
+                } else {
+                    missing("Ostatni znacznik czasu CameraX", "Brak klatek.")
+                },
                 observed("Przeanalizowane klatki w historii", cadence.sampleCount),
                 cadence.frequencyHz?.let { observed("Szacowany FPS analizy (timestamp delta)", format(it.toDouble()), "fps") }
                     ?: missing("Szacowany FPS analizy", "Za mało kolejnych klatek."),
@@ -251,17 +295,35 @@ internal class HardwareInventory(context: Context) {
         } else {
             fields.add(observed("Czas obserwacji", format(imu.durationNs / 1_000_000_000.0), "s"))
             for ((name, sample) in listOf("Akcelerometr" to imu.accelerometer, "Żyroskop" to imu.gyroscope)) {
-                fields.add(if (sample.registered) observed("$name — rejestracja", "tak") else missing("$name — rejestracja", "Czujnik niedostępny lub rejestracja odrzucona."))
+                fields.add(
+                    if (sample.registered) {
+                        observed("$name — rejestracja", "tak")
+                    } else {
+                        missing("$name — rejestracja", "Czujnik niedostępny lub rejestracja odrzucona.")
+                    },
+                )
                 fields.add(observed("$name — liczba callbacków", sample.metrics.sampleCount))
-                fields.add(sample.metrics.frequencyHz?.let { observed("$name — mediana częstotliwości", format(it), "Hz") }
-                    ?: missing("$name — częstotliwość", "Za mało zdarzeń."))
-                fields.add(sample.metrics.p95AbsoluteJitterMs?.let { observed("$name — p95 jitter", format(it), "ms") }
-                    ?: missing("$name — p95 jitter", "Za mało zdarzeń."))
+                fields.add(
+                    sample.metrics.frequencyHz?.let {
+                        observed("$name — mediana częstotliwości", format(it), "Hz")
+                    } ?: missing("$name — częstotliwość", "Za mało zdarzeń."),
+                )
+                fields.add(
+                    sample.metrics.p95AbsoluteJitterMs?.let {
+                        observed("$name — p95 jitter", format(it), "ms")
+                    } ?: missing("$name — p95 jitter", "Za mało zdarzeń."),
+                )
                 fields.add(observed("$name — niemonotoniczne znaczniki", sample.metrics.nonMonotonic))
-                fields.add(sample.lastTimestampNs?.let { observed("$name — ostatni timestamp", it, "ns") }
-                    ?: missing("$name — ostatni timestamp", "Brak zdarzeń."))
-                fields.add(sample.accuracy?.let { observed("$name — ostatnia dokładność", it) }
-                    ?: missing("$name — dokładność", "Nie zgłoszono zmiany dokładności."))
+                fields.add(
+                    sample.lastTimestampNs?.let {
+                        observed("$name — ostatni timestamp", it, "ns")
+                    } ?: missing("$name — ostatni timestamp", "Brak zdarzeń."),
+                )
+                fields.add(
+                    sample.accuracy?.let {
+                        observed("$name — ostatnia dokładność", it)
+                    } ?: missing("$name — dokładność", "Nie zgłoszono zmiany dokładności."),
+                )
             }
         }
         fields.add(missing("Fuzja visual-inertial", "Żaden pomiar nie dowodzi korekcji opóźnienia ani zsynchronizowanej fuzji."))
@@ -285,8 +347,7 @@ internal class HardwareInventory(context: Context) {
             else -> CameraClockSource.UNAVAILABLE
         }
 
-    private fun sensorUnit(type: Int): String =
-        when (type) {
+    private fun sensorUnit(type: Int): String = when (type) {
             Sensor.TYPE_ACCELEROMETER -> "m/s²"
             Sensor.TYPE_GYROSCOPE -> "rad/s"
             Sensor.TYPE_MAGNETIC_FIELD -> "µT"
@@ -297,17 +358,29 @@ internal class HardwareInventory(context: Context) {
     private fun format(value: Double): String = String.format(Locale.US, "%.3f", value)
 }
 
-internal fun reported(name: String, value: Any?, unit: String? = null): DiagnosticField =
-    if (value == null) missing(name, "Nieudostępnione przez Android API lub wymaga uprawnienia.")
-    else DiagnosticField(name, value.toString(), unit, EvidenceSource.REPORTED)
+internal fun reported(name: String, value: Any?, unit: String? = null): DiagnosticField {
+    return if (value == null) {
+        missing(name, "Nieudostępnione przez Android API lub wymaga uprawnienia.")
+    } else {
+        DiagnosticField(name, value.toString(), unit, EvidenceSource.REPORTED)
+    }
+}
 
-internal fun observed(name: String, value: Any?, unit: String? = null): DiagnosticField =
-    if (value == null) missing(name, "Nie zaobserwowano.")
-    else DiagnosticField(name, value.toString(), unit, EvidenceSource.OBSERVED)
+internal fun observed(name: String, value: Any?, unit: String? = null): DiagnosticField {
+    return if (value == null) {
+        missing(name, "Nie zaobserwowano.")
+    } else {
+        DiagnosticField(name, value.toString(), unit, EvidenceSource.OBSERVED)
+    }
+}
 
-internal fun requested(name: String, value: Any?, unit: String? = null): DiagnosticField =
-    if (value == null) missing(name, "Nie skonfigurowano.")
-    else DiagnosticField(name, value.toString(), unit, EvidenceSource.REQUESTED)
+internal fun requested(name: String, value: Any?, unit: String? = null): DiagnosticField {
+    return if (value == null) {
+        missing(name, "Nie skonfigurowano.")
+    } else {
+        DiagnosticField(name, value.toString(), unit, EvidenceSource.REQUESTED)
+    }
+}
 
 internal fun missing(name: String, reason: String): DiagnosticField =
     DiagnosticField(name, null, source = EvidenceSource.UNAVAILABLE, reason = reason)
