@@ -13,7 +13,7 @@ enum class AppDestination(
     LIVE("Tryb na żywo", true),
     STEP_BY_STEP("Krok po kroku", false, "M4"),
     MAP_3D("Mapa 3D", false, "M2"),
-    CALIBRATION("Kalibracja kamery", false, "M2"),
+    CALIBRATION("Kalibracja kamery", true),
     RECORD("Nagrywanie sesji", false, "M4"),
     REPLAY("Odtwarzanie sesji", false, "M4"),
     RESULTS("Wyniki i wykresy", false, "M3"),
