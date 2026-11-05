@@ -109,6 +109,8 @@ internal class CameraAnalyzer(
                         processingDurationNs = SystemClock.elapsedRealtimeNanos() - startedNs,
                     ),
                 )
+            } catch (_: Exception) {
+                // Diagnostics must not break the teaching camera pipeline.
             } finally {
                 image.close()
             }
