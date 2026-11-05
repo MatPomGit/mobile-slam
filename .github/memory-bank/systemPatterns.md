@@ -22,6 +22,12 @@ The single-Activity Compose app uses a typed `ui/AppDestination` enum for all me
 
 Hardware information is collected into immutable `DiagnosticSection`/`DiagnosticField` values with explicit reported, requested, observed and unavailable provenance. `HardwareInventory` reads Camera2/SensorManager/Build metadata without opening camera or subscribing to IMU on screen entry. Scalar-only `CameraObservationRecorder` records bounded ImageProxy geometry, timing and analysis durations from Live's existing analyzer; the active camera ID comes from bound CameraX Camera2Interop. `ImuValidationSession` subscribes only after an explicit action and unregisters at stop, onDispose or ON_STOP; its full callback timestamps are independent from the 10 Hz teaching HUD. `HardwareJson` exports schema v1 locally through SAF. Unknown Camera2 timestamp source blocks cross-camera/IMU clock comparisons; REALTIME does not imply synchronization calibration.
 
+## M2 processing contracts
+
+`frontend/PipelineContracts.kt` defines scalar-only frame geometry (ImageProxy full-frame pixels and exclusive crop bounds), frame/segment IDs, stable track IDs, state transitions, pose and future keyframe/map DTOs. Camera poses use world←camera, `p_world = R_world_camera * p_camera + t_world_camera`, with unknown metric scale until calibrated. FAST detections cannot transition the tracking state to TRACKING: initialization requires an explicit success event. No mutable OpenCV `Mat`/ImageProxy is included in cross-thread DTOs.
+
+`FrameOrderGate` is owned by the serial CameraAnalyzer thread. It rejects nonpositive, duplicate and decreasing CameraX timestamps; a geometry change increments segment ID and invalidates future temporal correspondences. `LatestSnapshotDispatcher` coalesces to one pending UI snapshot and one runnable, dropping stale snapshots when Compose is delayed. CameraX `STRATEGY_KEEP_ONLY_LATEST` remains the only image acquisition queue. The disposal path closes the dispatcher and clears the FAST detector on the analyzer executor after unbinding. Native Mats and MatOfKeyPoint remain released in their per-frame finally blocks.
+
 ## Decisions
 
 - 2026-11-04 — Single app module: simple first-milestone foundation rather than premature multi-module decomposition.
