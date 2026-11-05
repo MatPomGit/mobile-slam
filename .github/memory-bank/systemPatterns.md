@@ -38,6 +38,10 @@ A tracking result is not a 3D map, an inlier set or a camera pose. The cyan/gree
 
 `calib/MeasuredCalibration` stores explicit camera ID, full-frame dimensions/crop, Brown-Conrady five-coefficient distortion, measurement provenance and RMS reprojection error. It maps uniformly resized image intrinsics into analysis crop coordinates, rejects incompatible camera IDs/aspect ratios/subcrops, and provides iterative undistortion to normalized camera coordinates. No pose computation may use teaching-only defaults. This initial foundation is not yet connected to CameraX or persistent profiles; chessboard capture and measured device validation remain pending.
 
+## Chessboard photo calibration (#9)
+
+The calibration route is deliberately independent of Live CameraX: Compose `CalibrationScreen` uses Android SAF to load same-camera JPEG/PNG photos, `ChessboardCalibrator` runs OpenCV chessboard corner detection/subpixel refinement and `calibrateCamera` on a background coroutine, checks image/board consistency and reprojection RMS, and releases native Mats. `CalibrationProfileJson` uses a versioned small JSON for explicit import/export. The reference intrinsics are expressed for the decoded image and cannot be applied to ImageAnalysis without camera/crop/orientation/zoom/focus matching. No photo data is persisted or transmitted. The imported/calculated profile is displayed only and is **not** silently wired to tracking, pose or fusion.
+
 ## Decisions
 
 - 2026-11-04 — Single app module: simple first-milestone foundation rather than premature multi-module decomposition.
