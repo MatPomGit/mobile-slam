@@ -33,8 +33,7 @@ internal enum class CameraClockSource {
 internal object ClockDomainSafety {
     fun cameraImuComparable(source: CameraClockSource): Boolean = source == CameraClockSource.REALTIME
 
-    fun explanation(source: CameraClockSource): String =
-        when (source) {
+    fun explanation(source: CameraClockSource): String = when (source) {
             CameraClockSource.REALTIME ->
                 "REALTIME: porównywalna domena zegara, ale nie potwierdzono opóźnienia ekspozycji ani kalibracji synchronizacji."
             CameraClockSource.UNKNOWN ->
@@ -136,8 +135,11 @@ internal class CameraObservationRecorder {
             lastFrame = lastFrame,
             cadence = timestamps.summary(),
             medianProcessingMs = if (durationMs.isEmpty()) null else durationMs[(durationMs.size - 1) / 2],
-            p95ProcessingMs = if (durationMs.isEmpty()) null
-            else durationMs[(ceil(0.95 * durationMs.size).toInt() - 1).coerceIn(0, durationMs.lastIndex)],
+            p95ProcessingMs = if (durationMs.isEmpty()) {
+                null
+            } else {
+                durationMs[(ceil(0.95 * durationMs.size).toInt() - 1).coerceIn(0, durationMs.lastIndex)]
+            },
         )
     }
 }
