@@ -22,3 +22,9 @@ Use first physical-device evidence (Samsung SM-S938B, Android 17, 20-second Live
 - Added an Android UI test for expansion/collapse and corrected the hardware screen title assertion.
 - Documented partial real-phone evidence in `docs/device-tests/sm-s938b-2026-11-05.md`.
 - Local Android build unavailable (no Android SDK/Gradle dependency cache); rely on the PR's exact-head CI before merge. Physical lifecycle tests and exported diagnostics remain pending in #4.
+
+## Additional physical-device export (2026-11-05)
+- User supplied schema-v1 JSON at 2026-11-05T16:31:21Z from Samsung SM-S938B / app 0.1.0: active CameraX 0, ImageProxy 640x480 at 90 degrees, cropRect (25,0,616,480), 1261 recorded callbacks, timestamp-derived 30.013 FPS, processing p50 2.088 ms/p95 3.382 ms.
+- Explicit IMU diagnostic: 4.936 s, 582 accel callbacks (118.725 Hz), 233 gyro callbacks (47.490 Hz); no nonmonotonic timestamps. Timestamp p95 jitter exported as 0.000 ms needs precision/measurement scrutiny.
+- Camera source REALTIME permits clock-domain comparison but does not establish alignment. The last camera sample precedes export elapsedRealtime by 30.701 s and cannot be paired with latest IMU samples to infer offset.
+- Exact APK SHA and all six operator validation checklist items remain unverified. Report appended; CI for updated PR head should pass before merge.
