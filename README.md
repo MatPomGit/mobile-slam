@@ -100,3 +100,7 @@ The exported checklist remains NOT_TESTED until a physical-device acceptance rep
 - Sensor and camera timestamps are not synchronized or validated for visual-inertial fusion.
 - KLT provides only local, image-space feature tracking; no visual odometry, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Hardware inventory, basic camera/IMU measurements and JSON export are implemented; quantitative device acceptance still requires #4 and measured camera calibration remains #9.
 - Overlay alignment and lifecycle behavior require physical-device validation; CI runs only host JVM tests and static checks.
+
+### Calibration foundation (M2)
+
+`calib/MeasuredCalibration.kt` defines a measured-only camera profile: physical camera ID, reference full-frame dimensions, exclusive crop, pinhole matrix, five Brown–Conrady distortion coefficients, optional focus distance, provenance and measured RMS reprojection error. A pure Kotlin transform supports uniform resizing and crop offsets only; incompatible camera IDs, aspect ratios, or reference subcrops are rejected. Point undistortion returns normalized camera coordinates or fails explicitly if inversion does not converge. This is a geometry contract, **not** an active camera calibration or pose estimator. The Live HUD still displays teaching-only example intrinsics. Chessboard capture, verified import/export, actual camera binding and device reprojection acceptance remain part of #9.
