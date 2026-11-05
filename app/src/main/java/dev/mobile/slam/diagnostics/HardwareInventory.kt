@@ -348,12 +348,12 @@ internal class HardwareInventory(context: Context) {
         }
 
     private fun sensorUnit(type: Int): String = when (type) {
-            Sensor.TYPE_ACCELEROMETER -> "m/s²"
-            Sensor.TYPE_GYROSCOPE -> "rad/s"
-            Sensor.TYPE_MAGNETIC_FIELD -> "µT"
-            Sensor.TYPE_PRESSURE -> "hPa"
-            else -> "jednostka zależna od sensora"
-        }
+        Sensor.TYPE_ACCELEROMETER -> "m/s²"
+        Sensor.TYPE_GYROSCOPE -> "rad/s"
+        Sensor.TYPE_MAGNETIC_FIELD -> "µT"
+        Sensor.TYPE_PRESSURE -> "hPa"
+        else -> "jednostka zależna od sensora"
+    }
 
     private fun format(value: Double): String = String.format(Locale.US, "%.3f", value)
 }
