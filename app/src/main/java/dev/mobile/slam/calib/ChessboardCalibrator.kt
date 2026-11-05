@@ -211,7 +211,9 @@ internal object ChessboardCalibrator {
         // No implicit EXIF rotation: physical camera coordinates must be explicit.
         if (orientation != ExifInterface.ORIENTATION_NORMAL &&
             orientation != ExifInterface.ORIENTATION_UNDEFINED
-        ) return null
+        ) {
+            return null
+        }
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         val readable = resolver.openInputStream(uri)?.use {
