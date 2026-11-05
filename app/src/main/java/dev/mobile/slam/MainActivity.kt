@@ -219,6 +219,7 @@ private fun AppRoot(onExit: () -> Unit) {
 @Composable
 private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorder) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var cameraGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -229,6 +230,20 @@ private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorde
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         cameraGranted = granted
+    }
+
+    // Permission can change while the app is in the background (e.g. Android settings).
+    // Never reuse a stale grant when returning to the camera route.
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
+                cameraGranted =
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(Unit) {

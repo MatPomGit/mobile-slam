@@ -71,6 +71,10 @@ For device acceptance:
 
 Record the device model, Android version, observed camera orientation and pass/fail for each test before marking Milestone 1 fully accepted.
 
+A first Samsung SM-S938B / Android 17 **partial physical-device observation** is recorded in [docs/device-tests/sm-s938b-2026-11-05.md](docs/device-tests/sm-s938b-2026-11-05.md). The portrait recording shows a live preview, FAST markers and IMU HUD, but does **not** satisfy #4 (permission revoke/regrant, controlled rotation/overlay geometry, sensor lifecycle, validated camera/IMU clock domains, 5–10 minute stability and exported JSON). The exact tested APK commit SHA is still unknown.
+
+The hardware diagnostics screen groups the inventory into expandable sections to reduce scrolling without dropping fields from the read-only report or JSON export. When returning to Live from Android settings/background, CAMERA permission is rechecked; a revoked grant stops the camera route and exposes the permission request action.
+
 ## Hardware diagnostics and timestamp integrity
 
 The diagnostic screen distinguishes **reported** Camera2/SensorManager properties, **requested** CameraX settings, **observed** ImageAnalysis/IMU callback measurements and **unavailable/unmeasured** data. Android may withhold some Camera2 metadata before camera permission is granted; such fields are marked unavailable. Reported camera resolutions and AE FPS ranges do not prove the effective stream parameters: only actual ImageProxy buffers do.

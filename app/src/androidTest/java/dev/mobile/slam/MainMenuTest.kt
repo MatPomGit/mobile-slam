@@ -32,11 +32,27 @@ class MainMenuTest {
             rule.onAllNodesWithText("Detekcja cech FAST").fetchSemanticsNodes().isNotEmpty()
         }
         rule.onNodeWithText("Parametry sprzętowe i diagnostyka").performScrollTo().performClick()
-        rule.onNodeWithText("Parametry sprzętowe").assertExists()
+        rule.onNodeWithText("Parametry sprzętowe i diagnostyka").assertExists()
         rule.onNodeWithText("Powrót do ustawień").performClick()
         rule.onNodeWithText("Ustawienia").assertExists()
         rule.onNodeWithText("Powrót do menu").performClick()
         rule.onNodeWithText("MOBILE SLAM").assertExists()
+    }
+
+    @Test
+    fun hardwareInventoryGroupsCanBeExpandedAndCollapsed() {
+        rule.onNodeWithText("Ustawienia").performClick()
+        rule.waitUntil(10_000) {
+            rule.onAllNodesWithText("Detekcja cech FAST").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithText("Parametry sprzętowe i diagnostyka").performScrollTo().performClick()
+        rule.waitUntil(10_000) {
+            rule.onAllNodesWithText("Urządzenie i środowisko · Zwiń").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithText("Urządzenie i środowisko · Zwiń").performScrollTo().performClick()
+        rule.onNodeWithText("Urządzenie i środowisko · Rozwiń").assertExists()
+        rule.onNodeWithText("Urządzenie i środowisko · Rozwiń").performClick()
+        rule.onNodeWithText("Urządzenie i środowisko · Zwiń").assertExists()
     }
 
     @Test
