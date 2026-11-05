@@ -24,10 +24,10 @@
 ## Changelog
 
 - 2026-11-05 — PR #32 CI formatting repair: ktlint reported only the `MeasuredCalibration.forAnalysis` signature; corrected its formatting. Local Gradle validation could not resolve the existing Android Gradle Plugin, so exact-head hosted CI remains pending.
+- 2026-11-05 — PR #32 integrates `main` at `07c5f62` with the PR #33 KLT subtitle fix and device report. Memory Bank conflicts were reconciled; local Android validation remains blocked because Gradle cannot resolve AGP 8.8.2.
 
-- 2026-11-05 — PR #31 KLT tracking merged at 5f306317 after green main CI #42095053549. Issue #8 remains open pending physical-device KLT acceptance.
+- 2026-11-05 — PR #31 KLT tracking merged at 5f306317 after green CI #42095053549. A ~13.8 s screen recording showed FAST/KLT overlays and reactive counters but revealed a clipped Live subtitle; PR #33 merged its layout fix. Quantitative KLT and physical-device acceptance remain open.
 - 2026-11-05 — Issue #9 calibration foundation branch adds measured-only metadata, strict uniform-resize/crop compatibility and Brown-Conrady normalized undistortion with deterministic JVM tests. Chessboard acquisition, profile import/export and device validation remain pending.
-
 
 - 2026-11-05 — PR #30 frame/pipeline contracts merged after CI (main 08144385). Issue #8 implementation branch adds pyramidal KLT, forward/backward quality gates, stable track IDs, grid bounded selection, overlays, and JVM tests; exact-head CI/device acceptance pending.
 

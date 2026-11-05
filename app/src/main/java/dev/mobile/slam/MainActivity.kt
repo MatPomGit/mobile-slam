@@ -24,8 +24,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -433,10 +436,13 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Detekcja FAST → śledzenie optyczne KLT (kontrola przód–tył)",
+                text = "FAST → KLT · śledzenie punktów 2D",
                 color = Color(0xFFB8C7D1),
                 fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         Box(
