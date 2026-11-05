@@ -1,9 +1,5 @@
 package dev.mobile.slam.ui
 
-import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorManager
-import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,36 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-
-/** Early permission-free hardware inventory; full validation diagnostics are issue #23. */
-@Composable
-fun HardwareOverviewScreen(onBack: () -> Unit) {
-    val context = LocalContext.current
-    val manager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    val accelerometer = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    val gyroscope = manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-
-    InfoScreenLayout(title = "Parametry sprzętowe", onBack = onBack, backLabel = "Powrót do ustawień") {
-        Text("Dane zgłoszone przez system Android (bez uruchamiania kamery ani rejestrowania IMU).")
-        Text("Producent: ${Build.MANUFACTURER}")
-        Text("Model: ${Build.MODEL}")
-        Text("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-        Text("Procesory logiczne: ${Runtime.getRuntime().availableProcessors()}")
-        Text("Akcelerometr: ${accelerometer?.name ?: "niedostępny"}")
-        Text("Żyroskop: ${gyroscope?.name ?: "niedostępny"}")
-        Text(
-            "Rozdzielczości, rzeczywisty FPS, parametry optyczne, częstotliwości próbkowania " +
-                "i synchronizacja: nie zmierzono. Pełna diagnostyka i eksport JSON: zadanie #23.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            "Same informacje systemowe nie potwierdzają poprawnej pracy kamery ani synchronizacji IMU.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-    }
-}
 
 /** Describes the app's learning purpose and the limits of its current implementation. */
 @Composable
