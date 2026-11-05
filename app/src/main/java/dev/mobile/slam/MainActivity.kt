@@ -58,6 +58,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mobile.slam.calib.CameraIntrinsics
 import dev.mobile.slam.diagnostics.CameraObservationRecorder
+import dev.mobile.slam.frontend.FeatureStatus
 import dev.mobile.slam.frontend.Settings
 import dev.mobile.slam.frontend.SettingsRepository
 import dev.mobile.slam.sensors.CameraAnalyzer
@@ -432,7 +433,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Klatka w skali szarości → detekcja cech FAST",
+                text = "Detekcja FAST → śledzenie optyczne KLT (kontrola przód–tył)",
                 color = Color(0xFFB8C7D1),
                 fontSize = 13.sp,
             )
@@ -459,7 +460,9 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
             }
             if (keypointFrame != null) {
                 Text(
-                    text = "${keypointFrame?.points?.size ?: 0} cech",
+                    text = keypointFrame?.trackingMetrics?.let { metrics ->
+                        "KLT: ${metrics.tracked} śledzonych · ${metrics.detected} nowych · ${metrics.rejected} odrzuconych"
+                    } ?: "${keypointFrame?.points?.size ?: 0} cech FAST",
                     modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
                     color = Color.White,
                     fontSize = 13.sp,
@@ -477,7 +480,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 fontSize = 13.sp,
             )
             Text(
-                text = "Skala dowolna (monokular) · punkty FAST nie są jeszcze śledzone",
+                text = "KLT ≠ estymacja pozycji · brak rekonstrukcji 3D i skali metrycznej",
                 color = Color(0xFFFFD166),
                 fontSize = 12.sp,
             )
@@ -514,16 +517,34 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
 private fun List<Float>.asVector(): String = joinToString(prefix = "(", postfix = ")") { "%.2f".format(java.util.Locale.US, it) }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFeaturePoints(frame: FrameKeypoints, canvasSize: IntSize) {
-    frame.points.forEach { point ->
+    frame.tracks.forEach { track ->
         val mapped = PreviewCoordinates.project(
-            point = point,
+            point = dev.mobile.slam.sensors.FeaturePoint(track.current.xPx, track.current.yPx),
             crop = frame.crop,
             rotationDegrees = frame.rotationDegrees,
             previewWidth = canvasSize.width,
             previewHeight = canvasSize.height,
         ) ?: return@forEach
+        val color = if (track.status == FeatureStatus.TRACKED) Color(0xFF54F28B) else Color(0xFF61C7FF)
+        track.previous?.let { previous ->
+            val start = PreviewCoordinates.project(
+                point = dev.mobile.slam.sensors.FeaturePoint(previous.xPx, previous.yPx),
+                crop = frame.crop,
+                rotationDegrees = frame.rotationDegrees,
+                previewWidth = canvasSize.width,
+                previewHeight = canvasSize.height,
+            )
+            if (start != null) {
+                drawLine(
+                    color = color.copy(alpha = 0.65f),
+                    start = androidx.compose.ui.geometry.Offset(start.x, start.y),
+                    end = androidx.compose.ui.geometry.Offset(mapped.x, mapped.y),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            }
+        }
         drawCircle(
-            color = Color(0xFF54F28B),
+            color = color,
             radius = 3.dp.toPx(),
             center = androidx.compose.ui.geometry.Offset(mapped.x, mapped.y),
             style = Stroke(width = 1.dp.toPx()),
