@@ -20,3 +20,10 @@ Milestone 1 hardware evidence was recorded on Samsung SM-S938B (Android 17): Cam
 
 ## Acceptance
 Zero change in student-visible preview and HUD semantics; invalid timestamps do not reach vision processing; bounded snapshot delivery; deterministic unit tests; verified Android CI head; docs and Memory Bank aligned. Milestone #7 can then unblock #8 KLT.
+
+## Implementation completed in branch
+- Added `frontend/PipelineContracts.kt` for scalar metadata, geometry/crop, track/status, state machine, world-from-camera pose, map/keyframe and counters.
+- Added `FrameOrderGate` and `LatestSnapshotDispatcher`; integrated both into `sensors/CameraAnalyzer.kt`.
+- MainActivity schedules analyzer.close() after unbinding, on the serial analysis executor; no additional dependencies or image queues.
+- JVM regressions cover strictly increasing timestamps, duplicate/negative rejection, geometry segments and reset, newest-only delivery/close, and state-machine transitions.
+- README and Memory Bank updated. Android CI still required on exact new PR SHA; physical-device tests for #4 and native tracking #8 remain separate.
