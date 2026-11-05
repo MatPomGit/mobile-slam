@@ -139,7 +139,14 @@ fun SettingsScreen(
         }
 
         FutureSetting(title = "Obraz i kamera: rozdzielczość, FPS, wybór kamery", milestone = "M2")
-        FutureSetting(title = "Śledzenie KLT: okno, piramida, próg błędu", milestone = "M2")
+        Text("Śledzenie KLT", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Aktywne w trybie na żywo: maks. ${settings.kltMaxTracks} punktów, " +
+                "okno ${settings.kltWindowSize} px, poziomy piramidy 0–${settings.kltMaxLevel}, " +
+                "próg zgodności przód–tył ${settings.kltForwardBackwardPx} px. " +
+                "Parametry KLT pozostają stałe w tym wydaniu.",
+            style = MaterialTheme.typography.bodySmall,
+        )
         FutureSetting(title = "Geometria: RANSAC i minimalna paralaksa", milestone = "M2")
         FutureSetting(title = "Pozycja i mapa: PnP, keyframes, limity mapy", milestone = "M3")
         FutureSetting(title = "Wizualizacja trajektorii i chmury 3D", milestone = "M3")
