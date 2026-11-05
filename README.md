@@ -4,7 +4,7 @@ Android teaching app for making monocular visual-SLAM pipeline stages visible to
 
 ## Assumptions
 
-- This delivery is milestone 1; the menu shows tracking, initialization, map, calibration, recording/replay, metrics and optional ARCore as **disabled** future routes. The Settings screen is presently read-only; editing/persistence and hardware diagnostics are tracked in issues #22/#23.
+- This delivery is milestone 1; the menu shows tracking, initialization, map, calibration, recording/replay, metrics and optional ARCore as **disabled** future routes. The Settings screen edits and persists FAST and IMU HUD parameters (#22). A preliminary read-only hardware overview is available; complete diagnostics and export remain #23.
 - Live use requires a rear camera and runtime camera permission. Missing accelerometer or gyroscope hardware does not prevent camera analysis.
 - The displayed intrinsics are a teaching estimate for a nominal 640×480 image, not measured device calibration. CameraX can select another supported resolution.
 - FAST points are detected independently in every frame; they are not SLAM tracks, matches, or inliers.
@@ -16,7 +16,8 @@ Android teaching app for making monocular visual-SLAM pipeline stages visible to
 2. Open the project in Android Studio, or run `./gradlew :app:assembleDebug`.
 3. Install the debug APK on a physical Android 8.0+ device with a rear camera, or an emulator with a configured camera.
 4. The **menu launches without camera permission**. Select **Tryb na żywo** and grant permission only then. The live screen shows FAST keypoints and available sensor values; use **Powrót do menu** or system Back to leave the camera.
-5. **Ustawienia** opens a read-only overview of current defaults (FAST=20, IMU HUD=100 ms). **Parametry sprzętowe i diagnostyka** is visible but disabled until issue #23. **O aplikacji** displays scope/version/license, and **Zamknij aplikację** finishes the Activity.
+5. **Ustawienia** edits FAST threshold (1–255, default 20) and IMU HUD update interval (100–1000 ms, default 100). Settings persist across restarts and apply on the next **Tryb na żywo** entry. **Przywróć domyślne** resets both fields. Future controls are disabled.
+6. **Parametry sprzętowe i diagnostyka** shows preliminary read-only device/Android/sensor information without camera permission. Real FPS, clock validation, optical calibration and JSON export remain #23. **O aplikacji** shows version/license, and **Zamknij aplikację** finishes the Activity.
 
 Run local JVM tests with `./gradlew :app:testDebugUnitTest`.
 Run Android lint with `./gradlew :app:lintDebug`.
@@ -37,7 +38,7 @@ flowchart LR
     Intrinsics[Teaching-only intrinsics] --> HUD
 ```
 
-The navigation shell uses a typed `AppDestination` registry and blocks destinations marked as unavailable. The main menu does not acquire sensors. Live camera/IMU resources exist only while **Tryb na żywo** is composed; returning to the menu disposes them. No external navigation framework was introduced for this small first milestone.
+The navigation shell uses a typed `AppDestination` registry and blocks destinations marked as unavailable. Preferences DataStore maintains a versioned, validated immutable Settings snapshot, read once into the app-level state. New values apply to freshly created FAST and IMU HUD objects when the Live screen is entered, never by mutating active OpenCV processing. The main menu does not acquire sensors. Live camera/IMU resources exist only while **Tryb na żywo** is composed; returning to the menu disposes them. No external navigation framework was introduced for this small first milestone.
 
 Camera analysis runs on a dedicated single-thread executor and publishes immutable feature snapshots to the main thread. The camera preview and image-analysis use cases share a CameraX `UseCaseGroup` / `ViewPort`; the overlay maps raw FAST coordinates through the image crop and rotation into `PreviewView` coordinates. A compatible TextureView ensures Compose draws above the camera image.
 
@@ -53,6 +54,7 @@ JVM tests cover:
 
 - crop and rotation mapping at 0°, 90°, 180°, and 270°, including bounds and invalid dimensions;
 - padded Y-plane rows and nonunit pixel strides;
+- settings validation, supported schema and fallback behavior;
 - the IMU HUD sampling gate and reset behavior.
 
 For device acceptance:
@@ -72,5 +74,5 @@ Record the device model, Android version, observed camera orientation and pass/f
 - Low-texture scenes produce few stable features.
 - Camera intrinsics are not calibrated and distortion is not corrected.
 - Sensor and camera timestamps are not synchronized or validated for visual-inertial fusion.
-- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Settings editor and a hardware diagnostic report are separate planned work (#22/#23).
+- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Full hardware diagnostics, quantitative measurements and export remain #23.
 - Overlay alignment and lifecycle behavior require physical-device validation; CI runs only host JVM tests and static checks.
