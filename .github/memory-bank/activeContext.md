@@ -18,3 +18,10 @@ Build the first actual temporal correspondence stage after PR #30 was merged to 
 - Frame/track coordinates are unrotated ImageProxy pixels; existing PreviewCoordinates handles overlay transformation.
 - Tracked KLT points are not PnP inliers, 3D map points, or globally localized pose. Exact APK/device validation #4 remains open.
 - CI is required before merge. If test/compile fails, fix within the same PR.
+
+## Implementation status
+- Implemented KLT thresholds in `frontend/Settings` (not yet persisted or editable).
+- Implemented JVM-testable `TrackManager` with stable IDs/ages and bounded spatial replenishment.
+- Added OpenCV pyramidal LK with forward/backward check and previous grayscale Mat ownership on analyzer worker.
+- Integrated KLT in CameraAnalyzer and rendered cyan FAST seeds / green tracked points with separate counts in Live; clarified no camera pose/3D.
+- JVM regression tests for track lifecycle and filtering added. Android CI and physical device testing remain pending before merge.
