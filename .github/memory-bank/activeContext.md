@@ -25,3 +25,6 @@ Build the first actual temporal correspondence stage after PR #30 was merged to 
 - Added OpenCV pyramidal LK with forward/backward check and previous grayscale Mat ownership on analyzer worker.
 - Integrated KLT in CameraAnalyzer and rendered cyan FAST seeds / green tracked points with separate counts in Live; clarified no camera pose/3D.
 - JVM regression tests for track lifecycle and filtering added. Android CI and physical device testing remain pending before merge.
+
+- Added an Android instrumented smoke test with synthetic grayscale frames shifted by (2,1) pixels. It requires physical device/emulator execution; CI only compiles it.
+- First PR #31 CI reported only ktlint import ordering in CameraAnalyzer; corrected in the same PR, awaiting fresh exact-head CI.
