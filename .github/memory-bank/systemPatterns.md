@@ -28,6 +28,12 @@ Hardware information is collected into immutable `DiagnosticSection`/`Diagnostic
 
 `FrameOrderGate` is owned by the serial CameraAnalyzer thread. It rejects nonpositive, duplicate and decreasing CameraX timestamps; a geometry change increments segment ID and invalidates future temporal correspondences. `LatestSnapshotDispatcher` coalesces to one pending UI snapshot and one runnable, dropping stale snapshots when Compose is delayed. CameraX `STRATEGY_KEEP_ONLY_LATEST` remains the only image acquisition queue. The disposal path closes the dispatcher and clears the FAST detector on the analyzer executor after unbinding. Native Mats and MatOfKeyPoint remain released in their per-frame finally blocks.
 
+## KLT feature tracking (#8)
+
+The single-threaded `sensors/KltFeatureTracker` keeps one previous grayscale `Mat`, never passing native image storage to Compose. It uses two pyramidal LK evaluations (previous→current, current→previous) and accepts a feature only when both status bits, finite coordinates, crop bounds and forward–backward reprojection residual pass. `frontend/TrackManager` owns bounded, spatially distributed IDs/ages: FAST results seed new 2D features, while successful optical flow changes them to TRACKED. Frame geometry segment or timestamp gaps reset the temporal reference; old IDs are not reused in the analyzer session. All native LK temporary Mats are released in `finally`; analyzer.close() releases the previous grayscale clone.
+
+A tracking result is not a 3D map, an inlier set or a camera pose. The cyan/green HUD overlays distinguish new and tracked features. KLT parameters currently have immutable validated defaults in `Settings`; DataStore persists only the existing FAST/IMU HUD settings.
+
 ## Decisions
 
 - 2026-11-04 — Single app module: simple first-milestone foundation rather than premature multi-module decomposition.
