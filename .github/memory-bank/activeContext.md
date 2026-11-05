@@ -15,3 +15,10 @@ Use first physical-device evidence (Samsung SM-S938B, Android 17, 20-second Live
 - Permission revocation must stop the Live camera path promptly on resume, not assume the stale Compose state is valid.
 - Observed FAST detections must not be labelled tracks/pose/map. A short screen recording cannot verify camera alignment, clock synchronization or long-session stability.
 - Close hardware acceptance #4 only after repeatable on-device tests (grant/deny/revoke, orientations, sensor lifecycle, 5–10 minutes, timestamp-domain comparison) and a JSON report.
+
+## Implementation status
+- Added Live CAMERA permission recheck at ON_START and ON_RESUME.
+- Made hardware inventory sections expandable, defaulting to the first device section open.
+- Added an Android UI test for expansion/collapse and corrected the hardware screen title assertion.
+- Documented partial real-phone evidence in `docs/device-tests/sm-s938b-2026-11-05.md`.
+- Local Android build unavailable (no Android SDK/Gradle dependency cache); rely on the PR's exact-head CI before merge. Physical lifecycle tests and exported diagnostics remain pending in #4.
