@@ -23,6 +23,8 @@
 
 ## Changelog
 
+- 2026-11-05 — PR #32 extended with a selectable on-device photo calibration page: OpenCV chessboard detection/calibrateCamera, quality gates, SAF JSON import/export and tests. PR branch contains main 07c5f62 including PR #33's clipped-caption fix; GitHub now reports mergeable. Current exact-head CI and physical-camera acceptance remain pending.
+
 - 2026-11-05 — PR #32 CI formatting repair: ktlint reported only the `MeasuredCalibration.forAnalysis` signature; corrected its formatting. Local Gradle validation could not resolve the existing Android Gradle Plugin, so exact-head hosted CI remains pending.
 - 2026-11-05 — PR #32 integrates `main` at `07c5f62` with the PR #33 KLT subtitle fix and device report. Memory Bank conflicts were reconciled; local Android validation remains blocked because Gradle cannot resolve AGP 8.8.2.
 
