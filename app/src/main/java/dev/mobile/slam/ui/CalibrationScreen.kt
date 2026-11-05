@@ -100,10 +100,15 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
                         val input = context.contentResolver.openInputStream(uri)
                             ?: throw IllegalStateException("No input")
                         val json = input.bufferedReader().use { reader ->
-                            val buffer = CharArray(65537)
-                            val read = reader.read(buffer)
-                            if (read > 65536) throw IllegalArgumentException("Profile too large")
-                            String(buffer, 0, maxOf(read, 0))
+                            val output = StringBuilder()
+                            val buffer = CharArray(4096)
+                            while (true) {
+                                val read = reader.read(buffer)
+                                if (read < 0) break
+                                output.append(buffer, 0, read)
+                                if (output.length > 65536) throw IllegalArgumentException("Profile too large")
+                            }
+                            output.toString()
                         }
                         CalibrationProfileJson.decode(json)
                     }
