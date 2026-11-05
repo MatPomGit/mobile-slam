@@ -34,12 +34,18 @@ class KltFeatureTrackerTest {
             for (y in listOf(20, 60, 100)) {
                 for (x in listOf(20, 60, 100)) {
                     Imgproc.rectangle(
-                        firstImage, Point(x.toDouble(), y.toDouble()),
-                        Point((x + 16).toDouble(), (y + 16).toDouble()), Scalar(255.0), -1,
+                        firstImage,
+                        Point(x.toDouble(), y.toDouble()),
+                        Point((x + 16).toDouble(), (y + 16).toDouble()),
+                        Scalar(255.0),
+                        -1,
                     )
                     Imgproc.rectangle(
-                        secondImage, Point((x + 2).toDouble(), (y + 1).toDouble()),
-                        Point((x + 18).toDouble(), (y + 17).toDouble()), Scalar(255.0), -1,
+                        secondImage,
+                        Point((x + 2).toDouble(), (y + 1).toDouble()),
+                        Point((x + 18).toDouble(), (y + 17).toDouble()),
+                        Scalar(255.0),
+                        -1,
                     )
                     seeds.add(FeaturePoint(x.toFloat(), y.toFloat()))
                 }
