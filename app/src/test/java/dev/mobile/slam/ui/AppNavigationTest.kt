@@ -21,13 +21,14 @@ class AppNavigationTest {
             setOf(
                 AppDestination.MENU,
                 AppDestination.LIVE,
+                AppDestination.CALIBRATION,
                 AppDestination.SETTINGS,
                 AppDestination.HARDWARE,
                 AppDestination.ABOUT,
             ),
             enabled,
         )
-        AppDestination.modes.drop(1).forEach {
+        AppDestination.modes.filterNot { it.isAvailable }.forEach {
             assertFalse(it.isAvailable)
             assertTrue(it.releaseNote != null)
         }
