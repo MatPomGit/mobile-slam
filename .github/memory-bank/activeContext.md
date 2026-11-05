@@ -15,5 +15,13 @@
 - Existing HardwareOverviewScreen shows only Build and accelerometer/gyroscope names. No Camera2 metadata, true measured FPS, synchronized clock checks or export.
 - Full physical-device validation remains issue #4.
 
+## Current implementation
+- `diagnostics/DiagnosticsModels.kt`: provenance-aware rows, bounded camera/IMU timestamps, nonmonotonic counts and interval statistics; conservative clock-domain gate.
+- `diagnostics/HardwareInventory.kt`: Android/Camera2/IMU hardware inventory with unavailable reasons, recorded ImageProxy metadata and observed frame cadence/cost.
+- `diagnostics/ImuValidationSession.kt`: explicit, lifecycle-scoped IMU test independent of 10 Hz HUD.
+- `diagnostics/HardwareJson.kt`: locally exported schema-v1 JSON, source labels, units, missing reasons, NOT_TESTED acceptance checklist.
+- `ui/HardwareDiagnosticsScreen.kt`: refresh, start/stop IMU, enter Live for camera test, SAF export. Existing Live CameraAnalyzer publishes scalar-only observations and records actual bound camera ID.
+- JVM clock/interval tests and Android JSON test source; CI and physical-device checks not yet confirmed.
+
 ## Next step
-- Implement the layered diagnostic collector and UI in the stacked PR, run CI and reconcile any actual failures.
+- Create stacked PR against #25 branch, fix Android CI findings at exact SHA, and keep real-device acceptance #4 explicitly open.
