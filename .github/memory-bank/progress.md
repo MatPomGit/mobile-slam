@@ -23,6 +23,10 @@
 
 ## Changelog
 
+- 2026-11-05 — PR #31 KLT tracking merged at 5f306317 after green main CI #42095053549. Issue #8 remains open pending physical-device KLT acceptance.
+- 2026-11-05 — Issue #9 calibration foundation branch adds measured-only metadata, strict uniform-resize/crop compatibility and Brown-Conrady normalized undistortion with deterministic JVM tests. Chessboard acquisition, profile import/export and device validation remain pending.
+
+
 - 2026-11-05 — PR #30 frame/pipeline contracts merged after CI (main 08144385). Issue #8 implementation branch adds pyramidal KLT, forward/backward quality gates, stable track IDs, grid bounded selection, overlays, and JVM tests; exact-head CI/device acceptance pending.
 
 - 2026-11-05 — PR #29 merged on 32b219e after green exact-head CI; #4 hardware acceptance remains open.
