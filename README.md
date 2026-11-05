@@ -1,10 +1,10 @@
 # Mobile SLAM
 
-Android teaching app for making monocular visual-SLAM pipeline stages visible to students. Milestone 1 displays a live CameraX preview, OpenCV FAST keypoints, available IMU samples, and explicit camera-intrinsics defaults.
+Android teaching app for making monocular visual-SLAM pipeline stages visible to students. The startup screen is a mode menu with a reserved logo slot; the **Tryb na żywo** route displays the milestone-1 CameraX preview, OpenCV FAST keypoints, available IMU samples, and teaching-only camera intrinsics.
 
 ## Assumptions
 
-- This delivery is milestone 1; tracking, initialization, mapping, replay, and the remaining modes are staged work.
+- This delivery is milestone 1; the menu shows tracking, initialization, map, calibration, recording/replay, metrics and optional ARCore as **disabled** future routes. The Settings screen is presently read-only; editing/persistence and hardware diagnostics are tracked in issues #22/#23.
 - Live use requires a rear camera and runtime camera permission. Missing accelerometer or gyroscope hardware does not prevent camera analysis.
 - The displayed intrinsics are a teaching estimate for a nominal 640×480 image, not measured device calibration. CameraX can select another supported resolution.
 - FAST points are detected independently in every frame; they are not SLAM tracks, matches, or inliers.
@@ -15,11 +15,13 @@ Android teaching app for making monocular visual-SLAM pipeline stages visible to
 1. Install Android Studio, JDK 17, Android SDK platform 35, and build tools 35.0.0.
 2. Open the project in Android Studio, or run `./gradlew :app:assembleDebug`.
 3. Install the debug APK on a physical Android 8.0+ device with a rear camera, or an emulator with a configured camera.
-4. Grant camera permission. The screen shows FAST keypoints and the most recent sensor values when available.
+4. The **menu launches without camera permission**. Select **Tryb na żywo** and grant permission only then. The live screen shows FAST keypoints and available sensor values; use **Powrót do menu** or system Back to leave the camera.
+5. **Ustawienia** opens a read-only overview of current defaults (FAST=20, IMU HUD=100 ms). **Parametry sprzętowe i diagnostyka** is visible but disabled until issue #23. **O aplikacji** displays scope/version/license, and **Zamknij aplikację** finishes the Activity.
 
 Run local JVM tests with `./gradlew :app:testDebugUnitTest`.
 Run Android lint with `./gradlew :app:lintDebug`.
 Run Kotlin formatting checks with `./gradlew :app:ktlintCheck`.
+Compile Compose Android UI tests (without an emulator) with `./gradlew :app:assembleDebugAndroidTest`. The instrumentation tests require a device/emulator to execute; compilation **does not** mean they have passed on hardware.
 The `Android CI` workflow runs all four tasks on pull requests and pushes to `main` and `fix/**`. It uploads Gradle test/lint reports and a downloadable `mobile-slam-debug-apk` artifact. From a successful workflow run, download and extract the APK, then install with `adb install -r app-debug.apk` after enabling USB debugging on the test device.
 
 ## Architecture
@@ -34,6 +36,8 @@ flowchart LR
     Gate --> HUD[Compose status HUD]
     Intrinsics[Teaching-only intrinsics] --> HUD
 ```
+
+The navigation shell uses a typed `AppDestination` registry and blocks destinations marked as unavailable. The main menu does not acquire sensors. Live camera/IMU resources exist only while **Tryb na żywo** is composed; returning to the menu disposes them. No external navigation framework was introduced for this small first milestone.
 
 Camera analysis runs on a dedicated single-thread executor and publishes immutable feature snapshots to the main thread. The camera preview and image-analysis use cases share a CameraX `UseCaseGroup` / `ViewPort`; the overlay maps raw FAST coordinates through the image crop and rotation into `PreviewView` coordinates. A compatible TextureView ensures Compose draws above the camera image.
 
@@ -52,11 +56,12 @@ JVM tests cover:
 - the IMU HUD sampling gate and reset behavior.
 
 For device acceptance:
-1. Grant and revoke camera permission, confirming the preview can start and recover.
-2. Rotate the device through 0°, 90°, 180°, and 270°; inspect FAST corner registration at more than one aspect ratio.
-3. Move the application to the background and back; confirm IMU sampling stops and restarts, and that the camera preview recovers.
-4. Test devices with both, one, or no inertial sensors when available; inspect sample availability and timestamps.
-5. Leave the camera active for several minutes, watching for preview stalls, crashes, or excessive thermal load.
+1. Verify initial menu opens without permission dialog, navigation through Settings/About, disabled modes, Android Back and explicit Exit. From Live, return to menu repeatedly and inspect CameraX/IMU teardown.
+2. Grant and revoke camera permission, confirming the preview can start and recover.
+3. Rotate the device through 0°, 90°, 180°, and 270°; inspect FAST corner registration at more than one aspect ratio.
+4. Move the application to the background and back; confirm IMU sampling stops and restarts, and that the camera preview recovers.
+5. Test devices with both, one, or no inertial sensors when available; inspect sample availability and timestamps.
+6. Leave the camera active for several minutes, watching for preview stalls, crashes, or excessive thermal load.
 
 Record the device model, Android version, observed camera orientation and pass/fail for each test before marking Milestone 1 fully accepted.
 
@@ -67,5 +72,5 @@ Record the device model, Android version, observed camera orientation and pass/f
 - Low-texture scenes produce few stable features.
 - Camera intrinsics are not calibrated and distortion is not corrected.
 - Sensor and camera timestamps are not synchronized or validated for visual-inertial fusion.
-- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented.
+- No tracking, pose estimation, map points, keyframes, charts, recorder/replay, or relocalization is implemented. Settings editor and a hardware diagnostic report are separate planned work (#22/#23).
 - Overlay alignment and lifecycle behavior require physical-device validation; CI runs only host JVM tests and static checks.

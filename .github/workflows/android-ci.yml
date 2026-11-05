@@ -31,7 +31,11 @@ jobs:
         run: sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - name: Compile, test and lint
-        run: ./gradlew --no-daemon --continue :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck
+        run: ./gradlew --no-daemon --continue :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:ktlintCheck :app:assembleDebugAndroidTest
+      - name: Show ktlint violations
+        if: failure()
+        run: |
+          find app/build/reports/ktlint -name '*.txt' -type f -print -exec cat {} \; 2>/dev/null || true
       - name: Upload verification reports
         if: always()
         uses: actions/upload-artifact@v4

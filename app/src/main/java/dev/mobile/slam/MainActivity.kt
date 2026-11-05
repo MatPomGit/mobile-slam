@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,12 +29,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,12 +58,17 @@ import dev.mobile.slam.sensors.CameraAnalyzer
 import dev.mobile.slam.sensors.FrameKeypoints
 import dev.mobile.slam.sensors.ImuSample
 import dev.mobile.slam.sensors.ImuSource
+import dev.mobile.slam.ui.AboutScreen
+import dev.mobile.slam.ui.AppDestination
+import dev.mobile.slam.ui.AppNavigation
+import dev.mobile.slam.ui.MainMenuScreen
+import dev.mobile.slam.ui.SettingsOverviewScreen
 import dev.mobile.slam.viz.PreviewCoordinates
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Hosts the student-facing camera and sensor demonstration for the first SLAM milestone.
+ * Hosts the student-facing menu and opens camera resources only inside the live destination.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,9 +76,50 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    AppRoot(onExit = { finish() })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppRoot(onExit: () -> Unit) {
+    var destination by rememberSaveable { mutableStateOf(AppDestination.MENU) }
+    val onBack = { destination = AppDestination.MENU }
+
+    BackHandler(enabled = destination != AppDestination.MENU, onBack = onBack)
+
+    when (destination) {
+        AppDestination.MENU -> {
+            MainMenuScreen(
+                version = BuildConfig.VERSION_NAME,
+                onNavigate = { requested -> destination = AppNavigation.navigate(destination, requested) },
+                onExit = onExit,
+            )
+        }
+        AppDestination.LIVE -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Powrót do menu")
+                }
+                Box(modifier = Modifier.weight(1f)) {
                     SlamScreen()
                 }
             }
+        }
+        AppDestination.SETTINGS -> SettingsOverviewScreen(onBack = onBack)
+        AppDestination.ABOUT -> AboutScreen(version = BuildConfig.VERSION_NAME, onBack = onBack)
+        else -> {
+            // Defensive fallback for a future destination restored from saved state.
+            MainMenuScreen(
+                version = BuildConfig.VERSION_NAME,
+                onNavigate = { requested -> destination = AppNavigation.navigate(destination, requested) },
+                onExit = onExit,
+            )
         }
     }
 }
