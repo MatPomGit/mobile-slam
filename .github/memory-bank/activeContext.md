@@ -9,12 +9,14 @@
 - Acceptance: main menu is shown without camera/IMU acquisition, live remains functional, all planned modes visibly disabled until implemented, Settings/About/Exit navigation is functional, programmatic route gating is tested, CI passes, no untested hardware claims.
 
 ## Current State
+- Feature branch now contains typed route gating, adaptive main menu with replaceable logo slot, Live navigation, read-only Settings overview, About, Exit, JVM route tests and Android instrumentation smoke-test source.
+- Camera permission dialog remains only in the Live route; no claim of device acceptance.
 - Main at task start: `8f96a7cdbdc26af6fd837d103cf23281d4c12026`; merged PR #2 stabilizes milestone-1 camera/IMU and CI.
 - Existing UI boots directly to camera and only offers teaching-only intrinsics, per-frame FAST detections and an IMU HUD.
 - Physical device acceptance (#4) and persistent Settings (#22)/diagnostics (#23) remain pending.
 
 ## Next Step
-- Implement Issue #21 in a scoped PR, report exact CI evidence; keep Settings editor and hardware metadata collection for separate issues.
+- Open a scoped PR for #21 and verify Android CI at its head SHA, correcting failures before requesting review. Settings editor and hardware diagnostics remain separate #22/#23 work.
 
 ## Assumptions
 - Camera intrinsics are uncalibrated educational defaults.
