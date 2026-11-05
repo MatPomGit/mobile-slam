@@ -47,6 +47,8 @@ Camera analysis runs on a dedicated single-thread executor and publishes immutab
 
 Camera use cases are bound to the lifecycle and unbound individually when the screen is disposed. IMU listeners start at `ON_START` and unregister at `ON_STOP`. The sensors run in Android's `SENSOR_DELAY_GAME` mode; HUD snapshots are throttled to approximately 10 Hz to avoid unnecessary recompositions. Accelerometer and gyroscope timestamps are retained separately. This HUD path is not a synchronized, full-rate visual-inertial sensor-fusion feed.
 
+First on-device KLT screen-recording observations and remaining physical checks are documented in [docs/device-tests/sm-s938b-2026-11-05-klt.md](docs/device-tests/sm-s938b-2026-11-05-klt.md). A new Live subtitle layout fix avoids clipping on the recorded portrait screen; retest on the device is still required.
+
 ## Temporal FAST-to-KLT tracking (M2)
 
 The analyzer owns the current grayscale Mat and a single retained previous grayscale clone. OpenCV `Video.calcOpticalFlowPyrLK` estimates correspondences in both directions; points are accepted only when both status flags succeed, coordinates are finite and in the ImageProxy crop, and the forward–backward residual is below the configured threshold. A spatially distributed, bounded pool replenishes verified tracks from FAST detections when fewer than the configured minimum remain.

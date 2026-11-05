@@ -23,6 +23,8 @@
 
 ## Changelog
 
+- 2026-11-05 — PR #31 pyramidal FAST→KLT tracking merged on main `5f30631`; exact-head and main CI green. A new ~13.8 s device screen recording shows active blue/green points and live counts, but reveals a clipped Live subtitle. Follow-up fix submitted in a new PR; quantitative KLT and hardware acceptance remain open.
+
 - 2026-11-05 — PR #30 frame/pipeline contracts merged after CI (main 08144385). Issue #8 implementation branch adds pyramidal KLT, forward/backward quality gates, stable track IDs, grid bounded selection, overlays, and JVM tests; exact-head CI/device acceptance pending.
 
 - 2026-11-05 — PR #29 merged on 32b219e after green exact-head CI; #4 hardware acceptance remains open.
