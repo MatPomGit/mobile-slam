@@ -2,7 +2,6 @@ package dev.mobile.slam.diagnostics
 
 import android.app.ActivityManager
 import android.content.Context
-import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.ImageFormat
 import android.hardware.Sensor
@@ -43,7 +42,7 @@ internal class HardwareInventory(context: Context) {
                     observed("SystemClock.elapsedRealtimeNanos()", SystemClock.elapsedRealtimeNanos(), "ns"),
                     if (camera.cameraId == null) missing("Źródło czasu aktywnej kamery", "Nie uruchomiono jeszcze trybu na żywo.")
                     else reported("Źródło czasu aktywnej kamery", source.name),
-                    observed("Możliwość porównania zegarów", ClockDomainSafety.explanation(source)),
+                    reported("Interpretacja źródła czasu", ClockDomainSafety.explanation(source)),
                     missing("Dokładność wyrównania ekspozycji i próbek IMU", "Nie przeprowadzono kalibracji czasowej."),
                 ),
             ),
