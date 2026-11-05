@@ -6,9 +6,11 @@ import androidx.camera.core.ImageProxy
 import dev.mobile.slam.diagnostics.FrameObservation
 import dev.mobile.slam.frontend.FrameGeometry
 import dev.mobile.slam.frontend.FrameOrderGate
+import dev.mobile.slam.frontend.FeatureTrack
 import dev.mobile.slam.frontend.LatestSnapshotDispatcher
 import dev.mobile.slam.frontend.PixelCrop
 import dev.mobile.slam.frontend.Settings
+import dev.mobile.slam.frontend.TrackingMetrics
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -33,6 +35,8 @@ internal data class FrameKeypoints(
     val timestampNs: Long,
     val frameId: Long = 0L,
     val points: List<FeaturePoint>,
+    val tracks: List<FeatureTrack> = emptyList(),
+    val trackingMetrics: TrackingMetrics? = null,
     val error: String? = null,
 )
 
@@ -43,6 +47,7 @@ internal class CameraAnalyzer(
     private val onFrame: (FrameKeypoints) -> Unit,
 ) : ImageAnalysis.Analyzer {
     private var detector: FastFeatureDetector? = null
+    private var featureTracker: KltFeatureTracker? = null
     private var openCvInitialized = false
     private var openCvUnavailable = false
     private val frameOrder = FrameOrderGate()
@@ -92,6 +97,8 @@ internal class CameraAnalyzer(
                 val points = keypoints.toArray().map { keypoint ->
                     FeaturePoint(keypoint.pt.x.toFloat(), keypoint.pt.y.toFloat())
                 }
+                val tracking = (featureTracker ?: KltFeatureTracker(settings).also { featureTracker = it })
+                    .process(grayscale, metadata, points)
                 publish(
                     FrameKeypoints(
                         width = image.width,
@@ -101,6 +108,8 @@ internal class CameraAnalyzer(
                         timestampNs = metadata.timestampNs,
                         frameId = metadata.frameId,
                         points = points,
+                        tracks = tracking.tracks,
+                        trackingMetrics = tracking.metrics,
                     ),
                 )
             } finally {
@@ -156,6 +165,8 @@ internal class CameraAnalyzer(
      */
     fun close() {
         snapshots.close()
+        featureTracker?.close()
+        featureTracker = null
         detector?.clear()
         detector = null
     }
