@@ -50,10 +50,7 @@ fun SettingsOverviewScreen(onBack: () -> Unit) {
 
 /** Describes the app's learning purpose and the limits of its current implementation. */
 @Composable
-fun AboutScreen(
-    version: String,
-    onBack: () -> Unit,
-) {
+fun AboutScreen(version: String, onBack: () -> Unit) {
     InfoScreenLayout(title = "O aplikacji", onBack = onBack) {
         Text("Mobile SLAM · wersja $version")
         Text("Dydaktyczna aplikacja Android do nauki etapów monokularnego SLAM wizualnego.")
@@ -70,19 +67,14 @@ fun AboutScreen(
 }
 
 @Composable
-private fun InfoScreenLayout(
-    title: String,
-    onBack: () -> Unit,
-    content: @Composable () -> Unit,
-) {
+private fun InfoScreenLayout(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         TextButton(onClick = onBack, modifier = Modifier.heightIn(min = 48.dp)) {
