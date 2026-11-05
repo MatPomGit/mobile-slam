@@ -1,5 +1,9 @@
 package dev.mobile.slam.ui
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorManager
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,33 +20,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import dev.mobile.slam.frontend.Settings
 
-/**
- * Read-only settings entry point; persistent editors are implemented separately in issue #22.
- */
+/** Early permission-free hardware inventory; full validation diagnostics are issue #23. */
 @Composable
-fun SettingsOverviewScreen(onBack: () -> Unit) {
-    val defaults = Settings()
+fun HardwareOverviewScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val manager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    val accelerometer = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    val gyroscope = manager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-    InfoScreenLayout(title = "Ustawienia", onBack = onBack) {
+    InfoScreenLayout(title = "Parametry sprzętowe", onBack = onBack) {
+        Text("Dane zgłoszone przez system Android (bez uruchamiania kamery ani rejestrowania IMU).")
+        Text("Producent: ${Build.MANUFACTURER}")
+        Text("Model: ${Build.MODEL}")
+        Text("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+        Text("Procesory logiczne: ${Runtime.getRuntime().availableProcessors()}")
+        Text("Akcelerometr: ${accelerometer?.name ?: "niedostępny"}")
+        Text("Żyroskop: ${gyroscope?.name ?: "niedostępny"}")
         Text(
-            "Obecne wartości parametrów algorytmu (tylko do odczytu). " +
-                "Edycja i trwały zapis zostaną dodane w następnym etapie.",
+            "Rozdzielczości, rzeczywisty FPS, parametry optyczne, częstotliwości próbkowania " +
+                "i synchronizacja: nie zmierzono. Pełna diagnostyka i eksport JSON: zadanie #23.",
+            style = MaterialTheme.typography.bodySmall,
         )
-        Text("Detekcja FAST: próg ${defaults.fastThreshold}")
-        Text("Odświeżanie wskaźników IMU: ${defaults.imuHudIntervalMs} ms")
-        Text("Pozostałe parametry: w przygotowaniu", style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(
-            onClick = {},
-            enabled = false,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) {
-            Text("Parametry sprzętowe i diagnostyka · w przygotowaniu")
-        }
         Text(
-            "Diagnostyka kamery, IMU i synchronizacji zostanie udostępniona w osobnym etapie (#23).",
+            "Same informacje systemowe nie potwierdzają poprawnej pracy kamery ani synchronizacji IMU.",
             style = MaterialTheme.typography.bodySmall,
         )
     }
