@@ -14,5 +14,12 @@
 - Current settings: `Settings(fastThreshold=20, imuHudIntervalMs=100)` instantiated separately in Live; no persistence or editing.
 - Device acceptance #4 and detailed hardware diagnostics #23 remain open.
 
+## Current Implementation
+- Immutable Settings and schema-v1 codec reject invalid thresholds, unknown schema and malformed edits.
+- Preferences DataStore plus Flow provides app-level state; Live receives effective settings on entry, recreating FAST detector and IMU HUD sampling gate.
+- Settings screen supports validation, save and reset; unsupported future controls are disabled.
+- Permission-free Hardware overview shows a limited static device/sensor inventory. Full measurement/JSON export remains #23.
+- Unit validation tests and Android UI test source are included; CI result remains pending.
+
 ## Next Step
-- Implement #22 on a dedicated branch and open a small PR. Keep original training caveats: arbitrary monocular scale and no camera/IMU clock synchronization.
+- Open a scoped PR for #22, verify Android CI at exact SHA, and document physical-device acceptance blockers.
