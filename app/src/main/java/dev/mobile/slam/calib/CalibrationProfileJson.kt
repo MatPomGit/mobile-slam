@@ -18,8 +18,10 @@ internal object CalibrationProfileJson {
                 "reference_crop",
                 JSONArray(
                     listOf(
-                        profile.referenceCrop.left, profile.referenceCrop.top,
-                        profile.referenceCrop.right, profile.referenceCrop.bottom,
+                        profile.referenceCrop.left,
+                        profile.referenceCrop.top,
+                        profile.referenceCrop.right,
+                        profile.referenceCrop.bottom,
                     ),
                 ),
             )
