@@ -7,7 +7,6 @@ import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,12 +68,7 @@ fun AboutScreen(version: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun InfoScreenLayout(
-    title: String,
-    onBack: () -> Unit,
-    backLabel: String = "Powrót do menu",
-    content: @Composable () -> Unit,
-) {
+private fun InfoScreenLayout(title: String, onBack: () -> Unit, backLabel: String = "Powrót do menu", content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
