@@ -413,6 +413,9 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 if (preview != null && analysis != null) {
                     cameraProvider?.unbind(preview, analysis)
                 }
+                // Retire pending UI snapshots and the cached native FAST detector
+                // on the same serial worker that owns analysis and OpenCV state.
+                analyzerExecutor.execute { analyzer.close() }
                 analyzerExecutor.shutdown()
             }
         }
