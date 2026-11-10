@@ -22,6 +22,7 @@ import kotlin.math.hypot
 internal data class ChessboardSpec(
     val columns: Int = 9,
     val rows: Int = 6,
+    val automaticPattern: Boolean = false,
     val squareMm: Double = 20.0,
     val minViews: Int = 8,
     val maxRmsPx: Double = 1.5,
@@ -34,12 +35,81 @@ internal data class ChessboardSpec(
     }
 }
 
+/** Inner corner counts; each square axis has one more square than inner corners. */
+internal data class ChessboardPattern(val columns: Int, val rows: Int) {
+    init {
+        require(columns in 4..16 && rows in 4..16)
+    }
+}
+
+/**
+ * Search a bounded set of board dimensions only until the first usable observation.
+ * Prioritize common boards, then larger grids to avoid selecting a small sub-grid.
+ * Discovery uses a reduced image; final corner locations come from the full image.
+ */
+internal object ChessboardPatternSearch {
+    val candidates: List<ChessboardPattern> = (
+        listOf(
+            ChessboardPattern(7, 10),
+            ChessboardPattern(9, 6),
+            ChessboardPattern(10, 7),
+            ChessboardPattern(6, 9),
+            ChessboardPattern(8, 5),
+            ChessboardPattern(5, 8),
+        ) +
+            (4..16).flatMap { columns ->
+                (4..16).map { rows -> ChessboardPattern(columns, rows) }
+            }.sortedWith(
+                compareByDescending<ChessboardPattern> { it.columns * it.rows }
+                    .thenBy { abs(it.columns - it.rows) },
+            )
+        ).distinct()
+
+    fun detect(gray: Mat, corners: MatOfPoint2f): ChessboardPattern? {
+        val maxDimension = maxOf(gray.cols(), gray.rows())
+        val thumbnail = Mat()
+        val sample = if (maxDimension > 900) {
+            val scale = 900.0 / maxDimension
+            Imgproc.resize(
+                gray,
+                thumbnail,
+                Size(gray.cols() * scale, gray.rows() * scale),
+                0.0,
+                0.0,
+                Imgproc.INTER_AREA,
+            )
+            thumbnail
+        } else {
+            gray
+        }
+        val trial = MatOfPoint2f()
+        val flags = Calib3d.CALIB_CB_ADAPTIVE_THRESH or
+            Calib3d.CALIB_CB_NORMALIZE_IMAGE or Calib3d.CALIB_CB_FAST_CHECK
+        try {
+            for (pattern in candidates) {
+                val size = Size(pattern.columns.toDouble(), pattern.rows.toDouble())
+                if (!Calib3d.findChessboardCorners(sample, size, trial, flags)) continue
+                if (sample === gray) {
+                    trial.copyTo(corners)
+                    return pattern
+                }
+                if (Calib3d.findChessboardCorners(gray, size, corners, flags)) return pattern
+            }
+            return null
+        } finally {
+            trial.release()
+            thumbnail.release()
+        }
+    }
+}
+
 /** Observed outcome, including rejected photos; no synthetic calibration fallback. */
 internal data class ChessboardResult(
     val profile: MeasuredCalibration?,
     val accepted: Int,
     val rejected: Int,
     val reason: String,
+    val pattern: ChessboardPattern? = null,
 )
 
 /**
@@ -61,10 +131,7 @@ internal object ChessboardCalibrator {
         val detected = mutableListOf<Mat>()
         val objects = mutableListOf<Mat>()
         val centers = mutableListOf<Triple<Double, Double, Double>>()
-        val pattern = Size(spec.columns.toDouble(), spec.rows.toDouble())
-        val grid = (0 until spec.rows).flatMap { r ->
-            (0 until spec.columns).map { c -> Point3(c * spec.squareMm, r * spec.squareMm, 0.0) }
-        }
+        var selectedPattern: ChessboardPattern? = null
         var width = 0
         var height = 0
         var rejected = 0
@@ -78,14 +145,24 @@ internal object ChessboardCalibrator {
                 val corners = MatOfPoint2f()
                 var keep = false
                 try {
-                    if (width == 0) {
-                        width = gray.cols()
-                        height = gray.rows()
+                    if (width != 0 && (gray.cols() != width || gray.rows() != height)) {
+                        rejected++
+                        return@forEach
                     }
-                    if (gray.cols() != width || gray.rows() != height ||
+                    val activePattern = selectedPattern ?: if (spec.automaticPattern) {
+                        ChessboardPatternSearch.detect(gray, corners)
+                    } else {
+                        ChessboardPattern(spec.columns, spec.rows)
+                    }
+                    if (activePattern == null) {
+                        rejected++
+                        return@forEach
+                    }
+                    val alreadyDetected = spec.automaticPattern && selectedPattern == null
+                    if (!alreadyDetected &&
                         !Calib3d.findChessboardCorners(
                             gray,
-                            pattern,
+                            Size(activePattern.columns.toDouble(), activePattern.rows.toDouble()),
                             corners,
                             Calib3d.CALIB_CB_ADAPTIVE_THRESH or
                                 Calib3d.CALIB_CB_NORMALIZE_IMAGE or Calib3d.CALIB_CB_FAST_CHECK,
@@ -102,7 +179,7 @@ internal object ChessboardCalibrator {
                         TermCriteria(TermCriteria.EPS or TermCriteria.MAX_ITER, 30, 0.01),
                     )
                     val pts = corners.toArray()
-                    if (pts.size != spec.columns * spec.rows) {
+                    if (pts.size != activePattern.columns * activePattern.rows) {
                         rejected++
                         return@forEach
                     }
@@ -110,10 +187,10 @@ internal object ChessboardCalibrator {
                     val x1 = pts.maxOf { it.x }
                     val y0 = pts.minOf { it.y }
                     val y1 = pts.maxOf { it.y }
-                    val dx = (x1 - x0) / width
-                    val dy = (y1 - y0) / height
-                    val cx = (x0 + x1) / (2 * width)
-                    val cy = (y0 + y1) / (2 * height)
+                    val dx = (x1 - x0) / gray.cols()
+                    val dy = (y1 - y0) / gray.rows()
+                    val cx = (x0 + x1) / (2 * gray.cols())
+                    val cy = (y0 + y1) / (2 * gray.rows())
                     val area = dx * dy
                     val duplicated = centers.any { (x, y, a) ->
                         hypot(cx - x, cy - y) < 0.05 && abs(area - a) < 0.02
@@ -122,9 +199,19 @@ internal object ChessboardCalibrator {
                         rejected++
                         return@forEach
                     }
-                    detected.add(corners)
+                    val grid = (0 until activePattern.rows).flatMap { row ->
+                        (0 until activePattern.columns).map { column ->
+                            Point3(column * spec.squareMm, row * spec.squareMm, 0.0)
+                        }
+                    }
                     objects.add(MatOfPoint3f().also { it.fromList(grid) })
+                    detected.add(corners)
                     centers.add(Triple(cx, cy, area))
+                    if (selectedPattern == null) {
+                        selectedPattern = activePattern
+                        width = gray.cols()
+                        height = gray.rows()
+                    }
                     keep = true
                 } finally {
                     if (!keep) corners.release()
@@ -137,6 +224,7 @@ internal object ChessboardCalibrator {
                     detected.size,
                     rejected,
                     "Niewystarczająca liczba różnorodnych zdjęć z pełną szachownicą.",
+                    selectedPattern,
                 )
             }
             val camera = Mat.eye(3, 3, CvType.CV_64F)
@@ -171,6 +259,7 @@ internal object ChessboardCalibrator {
                         detected.size,
                         rejected,
                         "RMS lub ogniskowe poza zakresem jakości.",
+                        selectedPattern,
                     )
                 }
                 val profile = MeasuredCalibration(
@@ -191,6 +280,7 @@ internal object ChessboardCalibrator {
                     detected.size,
                     rejected,
                     "Pomiary obliczone; zweryfikuj tor kamery.",
+                    selectedPattern,
                 )
             } finally {
                 camera.release()
