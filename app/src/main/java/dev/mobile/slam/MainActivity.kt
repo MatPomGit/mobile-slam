@@ -24,12 +24,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -61,6 +66,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mobile.slam.calib.CalibrationCrop
 import dev.mobile.slam.calib.CalibrationProfileRepository
+import dev.mobile.slam.calib.LiveBoardProbeSettings
 import dev.mobile.slam.calib.CameraIntrinsics
 import dev.mobile.slam.calib.LiveCalibrationState
 import dev.mobile.slam.calib.LiveCalibrationValidator
@@ -302,6 +308,14 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
     var imuAvailable by remember { mutableStateOf(false) }
     var cameraError by remember { mutableStateOf<String?>(null) }
     var activeCameraId by remember { mutableStateOf<String?>(null) }
+    var boardProbeEnabled by rememberSaveable { mutableStateOf(false) }
+    var cornerColumns by rememberSaveable { mutableStateOf("7") }
+    var cornerRows by rememberSaveable { mutableStateOf("10") }
+    val boardProbeSettings = if (boardProbeEnabled) {
+        runCatching { LiveBoardProbeSettings(cornerColumns.toInt(), cornerRows.toInt()) }.getOrNull()
+    } else {
+        null
+    }
 
     DisposableEffect(lifecycleOwner, settings.imuHudIntervalMs) {
         val imuSource = ImuSource(context, settings.imuHudIntervalMs * 1_000_000L) { sample ->
@@ -328,7 +342,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
         }
     }
 
-    DisposableEffect(lifecycleOwner, previewView, settings.fastThreshold) {
+    DisposableEffect(lifecycleOwner, previewView, settings.fastThreshold, measuredCalibration, boardProbeSettings) {
         val view = previewView
         if (view == null) {
             onDispose { }
@@ -340,6 +354,8 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 settings = settings,
                 callbackExecutor = ContextCompat.getMainExecutor(context),
                 onObservation = diagnostics::observe,
+                calibration = measuredCalibration,
+                boardProbeSettings = boardProbeSettings,
             ) { frame ->
                 if (!disposed.get()) {
                     keypointFrame = frame
@@ -395,6 +411,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                     } catch (_: Exception) {
                         null
                     }
+                    analyzer.setBoundCameraId(activeCameraId)
                     diagnostics.cameraBound(activeCameraId)
                     boundPreview = preview
                     boundAnalysis = analysis
@@ -529,6 +546,53 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 color = Color(0xFFFFD166),
                 fontSize = 12.sp,
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = boardProbeEnabled, onCheckedChange = { boardProbeEnabled = it })
+                Text("Test szachownicy w CameraX (tylko pomiar)", color = Color.White, fontSize = 12.sp)
+            }
+            if (boardProbeEnabled) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = cornerColumns,
+                        onValueChange = { cornerColumns = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Narożniki X") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = cornerRows,
+                        onValueChange = { cornerRows = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Narożniki Y") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                    )
+                }
+                val report = keypointFrame?.boardProbe
+                Text(
+                    text = if (boardProbeSettings == null) {
+                        "Podaj od 4 do 16 narożników w każdym kierunku."
+                    } else {
+                        report?.let {
+                            "Próby: ${it.attempted} · wykrycia: ${it.found} · różne ujęcia: ${it.distinctViews}. " +
+                                it.status
+                        } ?: "Oczekiwanie na klatkę i profil pomiarowy."
+                    },
+                    color = Color(0xFFFFD166),
+                    fontSize = 12.sp,
+                )
+                report?.candidateScores?.forEach { score ->
+                    Text(
+                        text = "RMS PnP ${score.rotationDegrees}°: " +
+                            "${"%.2f".format(java.util.Locale.US, score.lastRmsPx)} px (ostatni), " +
+                            "${"%.2f".format(java.util.Locale.US, score.medianRmsPx)} px (mediana, " +
+                            "${score.distinctViews} ujęć). Bez automatycznego zatwierdzenia.",
+                        color = Color(0xFFB8C7D1),
+                        fontSize = 12.sp,
+                    )
+                }
+            }
             keypointFrame?.pairSelection?.let { pair ->
                 Text(
                     text = "Dobór par 2D: ${pair.state.label} · wspólnych: ${pair.sharedTracks} · " +
