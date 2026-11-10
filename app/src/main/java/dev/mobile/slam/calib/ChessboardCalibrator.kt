@@ -63,7 +63,7 @@ internal object ChessboardPatternSearch {
                 compareByDescending<ChessboardPattern> { it.columns * it.rows }
                     .thenBy { abs(it.columns - it.rows) },
             )
-    ).distinct()
+        ).distinct()
 
     fun detect(gray: Mat, corners: MatOfPoint2f): ChessboardPattern? {
         val maxDimension = maxOf(gray.cols(), gray.rows())
