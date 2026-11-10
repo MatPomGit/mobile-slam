@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -25,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +53,7 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
     var cameraId by remember { mutableStateOf("0") }
     var columns by remember { mutableStateOf("9") }
     var rows by remember { mutableStateOf("6") }
+    var automaticPattern by remember { mutableStateOf(true) }
     var squareMm by remember { mutableStateOf("20") }
     var running by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Wybierz serię zdjęć wykonanych tym samym aparatem.") }
@@ -57,8 +61,9 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
 
     val board = runCatching {
         ChessboardSpec(
-            columns = columns.toInt(),
-            rows = rows.toInt(),
+            columns = if (automaticPattern) 9 else columns.toInt(),
+            rows = if (automaticPattern) 6 else rows.toInt(),
+            automaticPattern = automaticPattern,
             squareMm = squareMm.replace(',', '.').toDouble(),
         )
     }.getOrNull()
@@ -80,7 +85,12 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
                             ChessboardCalibrator.calibrate(context.contentResolver, uris, selectedCamera, spec)
                         }
                         profile = result.profile
-                        status = result.reason +
+                        val detected = result.pattern?.let {
+                            "Wzorzec: " + it.columns + "×" + it.rows +
+                                " narożników wewnętrznych (" + (it.columns + 1) +
+                                "×" + (it.rows + 1) + " pól). "
+                        } ?: ""
+                        status = detected + result.reason +
                             " Przyjęto: " + result.accepted + ", odrzucono: " + result.rejected + "."
                     } catch (cause: Exception) {
                         if (cause is CancellationException) throw cause
@@ -154,9 +164,10 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
         }
         Text("Kalibracja kamery", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Szachownica: 9×6 wewnętrznych narożników (10×7 pól), kwadraty 20 mm. " +
-                "Wykonaj 12–25 zdjęć w różnych położeniach i nachyleniach, bez zmiany zoomu i ostrości. " +
-                "Wybieraj pliki zapisane w tej samej orientacji, bez obrotu EXIF.",
+            "Wykonaj 12–25 zdjęć szachownicy w różnych położeniach i nachyleniach, " +
+                "bez zmiany zoomu i ostrości. Jeden wymiar wzorca to liczba pól minus jeden " +
+                "(narożniki wewnętrzne). Wszystkie zdjęcia muszą mieć tę samą rozdzielczość " +
+                "i orientację bez obrotu EXIF.",
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
@@ -172,29 +183,42 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
             enabled = !running,
             singleLine = true,
         )
-        OutlinedTextField(
-            value = columns,
-            onValueChange = { columns = it },
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Wewnętrzne narożniki poziomo") },
-            enabled = !running,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-        OutlinedTextField(
-            value = rows,
-            onValueChange = { rows = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Wewnętrzne narożniki pionowo") },
-            enabled = !running,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = automaticPattern,
+                onCheckedChange = { automaticPattern = it },
+                enabled = !running,
+            )
+            Text("Automatycznie rozpoznaj szachownicę (4–16 narożników na oś)")
+        }
+        if (!automaticPattern) {
+            OutlinedTextField(
+                value = columns,
+                onValueChange = { columns = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Narożniki wewnętrzne poziomo (liczba pól − 1)") },
+                enabled = !running,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            OutlinedTextField(
+                value = rows,
+                onValueChange = { rows = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Narożniki wewnętrzne pionowo (liczba pól − 1)") },
+                enabled = !running,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+        }
         OutlinedTextField(
             value = squareMm,
             onValueChange = { squareMm = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Rozmiar pola (mm)") },
+            label = { Text("Zmierzony rozmiar pojedynczego pola (mm)") },
             enabled = !running,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
