@@ -88,6 +88,12 @@ The sequence is:
 
 Deterministic pure-JVM tests cover rejection gates. Android instrumentation includes a seeded synthetic RANSAC+pose+triangulation test with outliers and an unverified-calibration rejection test; **GitHub CI compiles, but does not execute, instrumentation tests**. Physical-camera acceptance and measured-scene reconstruction remain open in #9, #10 and #4.
 
+## KLT pairing toward two-view initialization (issue #10)
+
+The live CameraX analyzer now passes stable-ID KLT observations into a bounded `KltFramePairSelector` on the same serial worker. Each candidate links two frames from the same geometry segment, requires an uninterrupted timestamp sequence, checks minimum separation, common tracked IDs, 2D spatial distribution and median motion, and resets its anchor after successful selection or timeout. Coordinates are converted **once** from full-frame, unrotated ImageProxy pixels into coordinates relative to the verified `cropRect`. The selector stores only at most 400 scalar feature positions (no native Mats, images, IMU data, or persistent recordings). A small HUD displays the current selection reason, common KLT tracks, median 2D displacement and number of selected pairs.
+
+A `KltTwoViewBridge` maps the selected candidate's **observed** camera dimensions/crop to `TwoViewInitializer` with its existing explicit measured-profile and independent optical-path verification gates. The bridge is not invoked automatically by Live; `pairSelection.pair` is available only as an immutable candidate on a READY snapshot. In particular **2D image displacement is not geometric parallax**, and the HUD **does not claim estimated camera pose, sparse 3D map or metric scale**. Real-sequence two-view validation and optics verification must precede activation. The new JVM tests cover pair continuity, track IDs, invalid/changed geometry, out-of-order or discontinuous timestamps, anchor age, bounded size, low texture/coverage, low motion and fail-closed bridge behavior.
+
 ## Usage in class
 
 Move the camera across a textured scene and observe the location and count of FAST corners. Compare low- and high-texture surfaces and different motion conditions. KLT trajectories show image-space motion only; neither track counts nor displacements constitute a solved camera pose.
