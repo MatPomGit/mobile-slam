@@ -67,16 +67,23 @@ internal object TwoViewInitializer {
     ): TwoViewResult {
         val allocated = mutableListOf<Mat>()
         fun <T : Mat> own(value: T): T = value.also { allocated.add(it) }
-        fun rejected(reason: TwoViewFailure, inliers: Int = 0): TwoViewResult =
-            TwoViewResult.Rejected(reason, matches.size, inliers)
+        fun rejected(reason: TwoViewFailure, inliers: Int = 0): TwoViewResult = TwoViewResult.Rejected(
+            reason,
+            matches.size,
+            inliers,
+        )
 
         try {
-            val first = own(MatOfPoint2f().apply {
-                fromArray(*normalized.map { Point(it.first.x, it.first.y) }.toTypedArray())
-            })
-            val second = own(MatOfPoint2f().apply {
-                fromArray(*normalized.map { Point(it.second.x, it.second.y) }.toTypedArray())
-            })
+            val first = own(
+                MatOfPoint2f().apply {
+    fromArray(*normalized.map { Point(it.first.x, it.first.y) }.toTypedArray())
+                },
+            )
+            val second = own(
+                MatOfPoint2f().apply {
+    fromArray(*normalized.map { Point(it.second.x, it.second.y) }.toTypedArray())
+                },
+            )
             val mask = own(Mat())
             val focal = (intrinsics.fx + intrinsics.fy) / 2.0
             val essential = own(
@@ -130,12 +137,16 @@ internal object TwoViewInitializer {
             if (indices.size < config.minInliers) {
                 return rejected(TwoViewFailure.TOO_FEW_INLIERS, indices.size)
             }
-            val pair1 = own(MatOfPoint2f().apply {
-                fromArray(*indices.map { Point(normalized[it].first.x, normalized[it].first.y) }.toTypedArray())
-            })
-            val pair2 = own(MatOfPoint2f().apply {
-                fromArray(*indices.map { Point(normalized[it].second.x, normalized[it].second.y) }.toTypedArray())
-            })
+            val pair1 = own(
+                MatOfPoint2f().apply {
+    fromArray(*indices.map { Point(normalized[it].first.x, normalized[it].first.y) }.toTypedArray())
+                },
+            )
+            val pair2 = own(
+                MatOfPoint2f().apply {
+    fromArray(*indices.map { Point(normalized[it].second.x, normalized[it].second.y) }.toTypedArray())
+                },
+            )
             val p1 = own(Mat.zeros(3, 4, CvType.CV_64F))
             val p2 = own(Mat.zeros(3, 4, CvType.CV_64F))
             for (row in 0 until 3) {
