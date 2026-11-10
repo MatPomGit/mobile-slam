@@ -75,8 +75,8 @@ internal data class RelativePose(
     val translationUnit: List<Double>,
 ) {
     init {
-        require(rotationRowMajor.size == 9 && rotationRowMajor.all(Double::isFinite))
-        require(translationUnit.size == 3 && translationUnit.all(Double::isFinite))
+        require(rotationRowMajor.size == 9 && rotationRowMajor.all { it.isFinite() })
+        require(translationUnit.size == 3 && translationUnit.all { it.isFinite() })
     }
 }
 
