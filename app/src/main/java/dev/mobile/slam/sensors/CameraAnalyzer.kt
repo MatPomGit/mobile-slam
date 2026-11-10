@@ -11,6 +11,8 @@ import dev.mobile.slam.frontend.LatestSnapshotDispatcher
 import dev.mobile.slam.frontend.PixelCrop
 import dev.mobile.slam.frontend.Settings
 import dev.mobile.slam.frontend.TrackingMetrics
+import dev.mobile.slam.geometry.FramePairSelection
+import dev.mobile.slam.geometry.KltFramePairSelector
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -37,6 +39,7 @@ internal data class FrameKeypoints(
     val points: List<FeaturePoint>,
     val tracks: List<FeatureTrack> = emptyList(),
     val trackingMetrics: TrackingMetrics? = null,
+    val pairSelection: FramePairSelection? = null,
     val error: String? = null,
 )
 
@@ -48,6 +51,7 @@ internal class CameraAnalyzer(
 ) : ImageAnalysis.Analyzer {
     private var detector: FastFeatureDetector? = null
     private var featureTracker: KltFeatureTracker? = null
+    private val pairSelector = KltFramePairSelector()
     private var openCvInitialized = false
     private var openCvUnavailable = false
     private val frameOrder = FrameOrderGate()
@@ -99,6 +103,7 @@ internal class CameraAnalyzer(
                 }
                 val tracking = (featureTracker ?: KltFeatureTracker(settings).also { featureTracker = it })
                     .process(grayscale, metadata, points)
+                val pairSelection = pairSelector.observe(metadata, tracking.tracks)
                 publish(
                     FrameKeypoints(
                         width = image.width,
@@ -110,6 +115,7 @@ internal class CameraAnalyzer(
                         points = points,
                         tracks = tracking.tracks,
                         trackingMetrics = tracking.metrics,
+                        pairSelection = pairSelection,
                     ),
                 )
             } finally {
@@ -117,8 +123,10 @@ internal class CameraAnalyzer(
                 grayscale.release()
             }
         } catch (_: Exception) {
+            pairSelector.reset()
             publish(errorFrame(image, crop, acceptedFrameId, "Nie udało się przetworzyć klatki."))
         } catch (_: LinkageError) {
+            pairSelector.reset()
             openCvUnavailable = true
             publish(errorFrame(image, crop, acceptedFrameId, "Nie udało się uruchomić natywnego modułu OpenCV."))
         } finally {
@@ -165,6 +173,7 @@ internal class CameraAnalyzer(
      */
     fun close() {
         snapshots.close()
+        pairSelector.reset()
         featureTracker?.close()
         featureTracker = null
         detector?.clear()
