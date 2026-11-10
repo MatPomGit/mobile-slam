@@ -3,6 +3,8 @@ package dev.mobile.slam
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -368,11 +370,28 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
             var boundAnalysis: ImageAnalysis? = null
             var boundWidth = 0
             var boundHeight = 0
+            val mainHandler = Handler(Looper.getMainLooper())
+            var viewportRetryCount = 0
+            var pendingRetry: Runnable? = null
 
             fun bindCamera() {
                 val provider = cameraProvider ?: return
-                if (disposed.get() || view.width <= 0 || view.height <= 0) return
-                if (view.width == boundWidth && view.height == boundHeight) return
+                if (disposed.get()) return
+                if (view.width == boundWidth && view.height == boundHeight && boundPreview != null) return
+                if (view.width <= 0 || view.height <= 0 || view.viewPort == null) {
+                    // Compose/AndroidView can report layout before PreviewView creates its ViewPort.
+                    // A layout-only trigger would then leave the camera unbound indefinitely.
+                    if (pendingRetry == null && viewportRetryCount < 12) {
+                        viewportRetryCount++
+                        val retry = Runnable {
+                            pendingRetry = null
+                            bindCamera()
+                        }
+                        pendingRetry = retry
+                        mainHandler.postDelayed(retry, 250L)
+                    }
+                    return
+                }
                 val viewPort = view.viewPort ?: return
                 try {
                     val resolutionSelector = ResolutionSelector.Builder()
@@ -418,6 +437,9 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                     boundAnalysis = analysis
                     boundWidth = view.width
                     boundHeight = view.height
+                    viewportRetryCount = 0
+                    pendingRetry?.let { mainHandler.removeCallbacks(it) }
+                    pendingRetry = null
                     keypointFrame = null
                     cameraError = null
                 } catch (_: Exception) {
@@ -433,6 +455,20 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 }
             }
             view.addOnLayoutChangeListener(layoutListener)
+            val attachListener = object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    bindCamera()
+                }
+
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            }
+            view.addOnAttachStateChangeListener(attachListener)
+            val cameraLifecycleObserver = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME && boundPreview == null) {
+                    bindCamera()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(cameraLifecycleObserver)
             cameraProviderFuture.addListener(
                 {
                     if (!disposed.get()) {
@@ -450,6 +486,10 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
             onDispose {
                 disposed.set(true)
                 activeCameraId = null
+                pendingRetry?.let { mainHandler.removeCallbacks(it) }
+                pendingRetry = null
+                lifecycleOwner.lifecycle.removeObserver(cameraLifecycleObserver)
+                view.removeOnAttachStateChangeListener(attachListener)
                 view.removeOnLayoutChangeListener(layoutListener)
                 val preview = boundPreview
                 val analysis = boundAnalysis
@@ -547,7 +587,11 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text = cameraError ?: "Stan: podgląd i analiza obrazu",
+                text = cameraError ?: if (keypointFrame == null) {
+                    "Stan: oczekiwanie na pierwszą klatkę CameraX"
+                } else {
+                    "Stan: podgląd i analiza obrazu"
+                },
                 color = if (cameraError == null) Color(0xFF8FE3A1) else Color(0xFFFF9A8B),
                 fontSize = 13.sp,
             )
