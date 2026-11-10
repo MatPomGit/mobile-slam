@@ -37,6 +37,7 @@ internal fun SettingsScreen(
     settings: Settings,
     calibration: MeasuredCalibration?,
     calibrationWarning: String?,
+    bundledCalibration: Boolean,
     busy: Boolean,
     warning: String?,
     status: String?,
@@ -152,6 +153,14 @@ internal fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
+            Text(
+                if (bundledCalibration) {
+                    "Domyślny profil pomiarowy Camera2 ID 0. Zastąpisz go własnym profilem przez kalibrację lub import JSON."
+                } else {
+                    "Aktywny profil użytkownika (zapisany pomiar lub import)."
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
             CalibrationProfileSummary(calibration)
         }
         FutureSetting(title = "Obraz i kamera: rozdzielczość, FPS, wybór kamery", milestone = "M2")
