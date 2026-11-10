@@ -239,11 +239,7 @@ private fun AppRoot(onExit: () -> Unit) {
 }
 
 @Composable
-private fun SlamScreen(
-    settings: Settings,
-    diagnostics: CameraObservationRecorder,
-    measuredCalibration: MeasuredCalibration?,
-) {
+private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorder, measuredCalibration: MeasuredCalibration?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var cameraGranted by remember {
@@ -296,11 +292,7 @@ private fun SlamScreen(
 
 @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
-private fun LiveSlamScreen(
-    settings: Settings,
-    diagnostics: CameraObservationRecorder,
-    measuredCalibration: MeasuredCalibration?,
-) {
+private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRecorder, measuredCalibration: MeasuredCalibration?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val intrinsics = remember { CameraIntrinsics.default640x480() }
