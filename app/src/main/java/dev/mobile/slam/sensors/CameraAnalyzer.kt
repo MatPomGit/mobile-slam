@@ -60,15 +60,17 @@ internal class CameraAnalyzer(
     private var featureTracker: KltFeatureTracker? = null
     private val pairSelector = KltFramePairSelector()
     private val boardProbe = boardProbeSettings?.let { CameraXChessboardProbe(calibration, it) }
-    @Volatile private var boundCameraId: String? = null
-
-    fun setBoundCameraId(id: String?) {
-        boundCameraId = id
-    }
     private var openCvInitialized = false
     private var openCvUnavailable = false
     private val frameOrder = FrameOrderGate()
     private val snapshots = LatestSnapshotDispatcher(callbackExecutor, onFrame)
+
+    @Volatile
+    private var boundCameraId: String? = null
+
+    fun setBoundCameraId(id: String?) {
+        boundCameraId = id
+    }
 
     override fun analyze(image: ImageProxy) {
         val startedNs = SystemClock.elapsedRealtimeNanos()
