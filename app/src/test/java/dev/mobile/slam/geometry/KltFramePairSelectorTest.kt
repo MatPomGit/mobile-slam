@@ -22,21 +22,17 @@ class KltFramePairSelectorTest {
         shape: FrameGeometry = geometry,
     ) = FrameMetadata(id, segment, timeNs, shape)
 
-    private fun tracks(
-        dx: Float = 0f,
-        dy: Float = 0f,
-        status: FeatureStatus = FeatureStatus.TRACKED,
-        count: Int = 64,
-    ): List<FeatureTrack> = (0 until count).map { index ->
-        val x = 70f + index % 8 * 65f + dx
-        val y = 50f + index / 8 * 50f + dy
-        FeatureTrack(
-            id = index + 1L,
-            current = ImageFeature(x, y),
-            ageFrames = if (status == FeatureStatus.DETECTED) 1 else 2,
-            status = status,
-        )
-    }
+    private fun tracks(dx: Float = 0f, dy: Float = 0f, status: FeatureStatus = FeatureStatus.TRACKED, count: Int = 64): List<FeatureTrack> =
+        (0 until count).map { index ->
+            val x = 70f + index % 8 * 65f + dx
+            val y = 50f + index / 8 * 50f + dy
+            FeatureTrack(
+                id = index + 1L,
+                current = ImageFeature(x, y),
+                ageFrames = if (status == FeatureStatus.DETECTED) 1 else 2,
+                status = status,
+            )
+        }
 
     @Test
     fun collectsStableIdsAndProducesCropRelativeCandidateOnlyOnce() {
