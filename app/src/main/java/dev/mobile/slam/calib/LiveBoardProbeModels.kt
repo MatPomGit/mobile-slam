@@ -48,7 +48,9 @@ internal class LiveBoardProbeLedger {
 
     val distinctViews: Int get() = views.size
 
-    fun attempt() { attempted++ }
+    fun attempt() {
+        attempted++
+    }
 
     fun add(centerX: Double, centerY: Double, area: Double, errors: Map<Int, Double>): Boolean {
         if (!centerX.isFinite() || !centerY.isFinite() || !area.isFinite() ||
@@ -57,13 +59,13 @@ internal class LiveBoardProbeLedger {
         ) {
             return false
         }
+        // Only consistent candidate sets represent a valid detected measurement.
+        if (residuals.isNotEmpty() && residuals.keys != errors.keys) return false
         found++
         val repeated = views.any { (x, y, a) ->
             kotlin.math.hypot(centerX - x, centerY - y) < 0.06 && abs(area - a) < 0.025
         }
         if (repeated || views.size >= 40) return false
-        // All score series must refer to identical distinct observations.
-        if (residuals.isNotEmpty() && residuals.keys != errors.keys) return false
         views.add(Triple(centerX, centerY, area))
         errors.forEach { (rotation, error) ->
             residuals.getOrPut(rotation) { mutableListOf() }.add(error)
