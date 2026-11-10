@@ -66,6 +66,7 @@ internal data class FramePairSelection(
     val sharedTracks: Int = 0,
     val medianMotionPx: Double = 0.0,
     val referenceFrameId: Long? = null,
+    val acceptedPairs: Long = 0L,
     val pair: TwoViewFramePair? = null,
 )
 
@@ -81,6 +82,7 @@ internal class KltFramePairSelector(private val config: FramePairConfig = FrameP
 
     private var anchor: Anchor? = null
     private var previousFrame: FrameMetadata? = null
+    private var acceptedPairs = 0L
 
     fun observe(frame: FrameMetadata, tracks: List<FeatureTrack>): FramePairSelection {
         val crop = frame.geometry.crop
@@ -141,7 +143,13 @@ internal class KltFramePairSelector(private val config: FramePairConfig = FrameP
             hypot(match.second.x - match.first.x, match.second.y - match.first.y)
         }.sorted()
         val median = if (shared == 0) 0.0 else displacements[shared / 2]
-        fun status(state: FramePairState) = FramePairSelection(state, shared, median, reference.frame.frameId)
+        fun status(state: FramePairState) = FramePairSelection(
+            state = state,
+            sharedTracks = shared,
+            medianMotionPx = median,
+            referenceFrameId = reference.frame.frameId,
+            acceptedPairs = acceptedPairs,
+        )
 
         if (frame.frameId - reference.frame.frameId < config.minFrameGap) {
             return status(FramePairState.TOO_SOON)
@@ -160,17 +168,26 @@ internal class KltFramePairSelector(private val config: FramePairConfig = FrameP
         val candidate = TwoViewFramePair(reference.frame, frame, common)
         // A successful pair is consumed once. New observations form the next anchor.
         anchor = Anchor(frame, positions)
-        return FramePairSelection(FramePairState.READY, shared, median, reference.frame.frameId, candidate)
+        acceptedPairs++
+        return FramePairSelection(
+            state = FramePairState.READY,
+            sharedTracks = shared,
+            medianMotionPx = median,
+            referenceFrameId = reference.frame.frameId,
+            acceptedPairs = acceptedPairs,
+            pair = candidate,
+        )
     }
 
     private fun begin(frame: FrameMetadata, points: Map<Long, PixelPoint>, state: FramePairState): FramePairSelection {
         anchor = Anchor(frame, points)
         previousFrame = frame
-        return FramePairSelection(state, referenceFrameId = frame.frameId)
+        return FramePairSelection(state, referenceFrameId = frame.frameId, acceptedPairs = acceptedPairs)
     }
 
     fun reset() {
         anchor = null
         previousFrame = null
+        acceptedPairs = 0L
     }
 }
