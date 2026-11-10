@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -471,6 +472,15 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
         height = frame?.height,
         crop = frame?.crop?.let { CalibrationCrop(it.left, it.top, it.right, it.bottom) },
     )
+    val boardInputColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedLabelColor = Color.White,
+        unfocusedLabelColor = Color(0xFFB8C7D1),
+        focusedBorderColor = Color(0xFF61C7FF),
+        unfocusedBorderColor = Color(0xFFB8C7D1),
+        cursorColor = Color.White,
+    )
     val candidateK = calibrationCheck.candidateIntrinsics
     val displayedK = if (candidateK == null) {
         "DEMO K: fx=${intrinsics.fx.toInt()} fy=${intrinsics.fy.toInt()} " +
@@ -557,6 +567,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                         onValueChange = { cornerColumns = it },
                         modifier = Modifier.weight(1f),
                         label = { Text("Narożniki X") },
+                        colors = boardInputColors,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                     )
@@ -565,6 +576,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                         onValueChange = { cornerRows = it },
                         modifier = Modifier.weight(1f),
                         label = { Text("Narożniki Y") },
+                        colors = boardInputColors,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                     )
