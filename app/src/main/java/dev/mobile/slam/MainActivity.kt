@@ -61,10 +61,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.mobile.slam.calib.CalibrationCrop
 import dev.mobile.slam.calib.CalibrationProfileRepository
+import dev.mobile.slam.calib.CameraIntrinsics
 import dev.mobile.slam.calib.LiveCalibrationState
 import dev.mobile.slam.calib.LiveCalibrationValidator
 import dev.mobile.slam.calib.MeasuredCalibration
-import dev.mobile.slam.calib.CameraIntrinsics
 import dev.mobile.slam.diagnostics.CameraObservationRecorder
 import dev.mobile.slam.frontend.FeatureStatus
 import dev.mobile.slam.frontend.Settings
@@ -463,6 +463,14 @@ private fun LiveSlamScreen(
         crop = frame?.crop?.let { CalibrationCrop(it.left, it.top, it.right, it.bottom) },
     )
     val candidateK = calibrationCheck.candidateIntrinsics
+    val displayedK = if (candidateK == null) {
+        "DEMO K: fx=${intrinsics.fx.toInt()} fy=${intrinsics.fy.toInt()} " +
+            "cx=${intrinsics.cx.toInt()} cy=${intrinsics.cy.toInt()}"
+    } else {
+        "K pomiarowe (tylko podgląd): " +
+            "fx=${candidateK.fx.toInt()} fy=${candidateK.fy.toInt()} " +
+            "cx=${candidateK.cx.toInt()} cy=${candidateK.cy.toInt()}"
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().background(Color(0xFF101820)),
@@ -558,15 +566,7 @@ private fun LiveSlamScreen(
             )
             Text(
                 text = "Obraz ${frame?.let { "${it.width}×${it.height}" } ?: "niezmierzony"} · " +
-                    "t=${frame?.timestampNs ?: 0L} ns · " +
-                    if (candidateK == null) {
-                        "DEMO K: fx=${intrinsics.fx.toInt()} fy=${intrinsics.fy.toInt()} " +
-                            "cx=${intrinsics.cx.toInt()} cy=${intrinsics.cy.toInt()}"
-                    } else {
-                        "K pomiarowe (tylko podgląd): " +
-                            "fx=${candidateK.fx.toInt()} fy=${candidateK.fy.toInt()} " +
-                            "cx=${candidateK.cx.toInt()} cy=${candidateK.cy.toInt()}"
-                    },
+                    "t=${frame?.timestampNs ?: 0L} ns · " + displayedK,
                 color = Color(0xFFB8C7D1),
                 fontSize = 12.sp,
             )
