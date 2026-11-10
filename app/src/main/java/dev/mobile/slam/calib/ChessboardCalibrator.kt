@@ -2,6 +2,7 @@ package dev.mobile.slam.calib
 
 import android.content.ContentResolver
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import org.opencv.android.OpenCVLoader
@@ -103,6 +104,29 @@ internal object ChessboardPatternSearch {
     }
 }
 
+internal enum class CalibrationPhotoRejection(val label: String) {
+    UNREADABLE("nie można odczytać zdjęcia"),
+    EXIF_MIRRORED("nieobsługiwany obrót lustrzany EXIF"),
+    RESOLUTION_MISMATCH("różna rozdzielczość"),
+    PATTERN_NOT_FOUND("nie wykryto pełnego wzorca"),
+    CORNER_COUNT("nieprawidłowa liczba narożników"),
+    LOW_COVERAGE("zbyt mały wzorzec w kadrze"),
+    DUPLICATE("powtarzające się ujęcie"),
+}
+
+/** Maps a photo's EXIF orientation into a consistent decoded image orientation. */
+internal object CalibrationExifRotation {
+    fun degrees(orientation: Int): Int? = when (orientation) {
+        ExifInterface.ORIENTATION_NORMAL,
+        ExifInterface.ORIENTATION_UNDEFINED,
+        -> 0
+        ExifInterface.ORIENTATION_ROTATE_90 -> 90
+        ExifInterface.ORIENTATION_ROTATE_180 -> 180
+        ExifInterface.ORIENTATION_ROTATE_270 -> 270
+        else -> null
+    }
+}
+
 /** Observed outcome, including rejected photos; no synthetic calibration fallback. */
 internal data class ChessboardResult(
     val profile: MeasuredCalibration?,
@@ -110,6 +134,7 @@ internal data class ChessboardResult(
     val rejected: Int,
     val reason: String,
     val pattern: ChessboardPattern? = null,
+    val rejectionCounts: Map<CalibrationPhotoRejection, Int> = emptyMap(),
 )
 
 /**
@@ -135,18 +160,23 @@ internal object ChessboardCalibrator {
         var width = 0
         var height = 0
         var rejected = 0
+        val rejectionCounts = linkedMapOf<CalibrationPhotoRejection, Int>()
+        fun reject(reason: CalibrationPhotoRejection) {
+            rejected++
+            rejectionCounts[reason] = (rejectionCounts[reason] ?: 0) + 1
+        }
         try {
             uris.forEach { uri ->
-                val gray = readGray(resolver, uri)
+                val (gray, readError) = readGray(resolver, uri)
                 if (gray == null) {
-                    rejected++
+                    reject(readError ?: CalibrationPhotoRejection.UNREADABLE)
                     return@forEach
                 }
                 val corners = MatOfPoint2f()
                 var keep = false
                 try {
                     if (width != 0 && (gray.cols() != width || gray.rows() != height)) {
-                        rejected++
+                        reject(CalibrationPhotoRejection.RESOLUTION_MISMATCH)
                         return@forEach
                     }
                     val activePattern = selectedPattern ?: if (spec.automaticPattern) {
@@ -155,7 +185,7 @@ internal object ChessboardCalibrator {
                         ChessboardPattern(spec.columns, spec.rows)
                     }
                     if (activePattern == null) {
-                        rejected++
+                        reject(CalibrationPhotoRejection.PATTERN_NOT_FOUND)
                         return@forEach
                     }
                     val alreadyDetected = spec.automaticPattern && selectedPattern == null
@@ -168,7 +198,7 @@ internal object ChessboardCalibrator {
                                 Calib3d.CALIB_CB_NORMALIZE_IMAGE or Calib3d.CALIB_CB_FAST_CHECK,
                         )
                     ) {
-                        rejected++
+                        reject(CalibrationPhotoRejection.PATTERN_NOT_FOUND)
                         return@forEach
                     }
                     Imgproc.cornerSubPix(
@@ -180,7 +210,7 @@ internal object ChessboardCalibrator {
                     )
                     val pts = corners.toArray()
                     if (pts.size != activePattern.columns * activePattern.rows) {
-                        rejected++
+                        reject(CalibrationPhotoRejection.CORNER_COUNT)
                         return@forEach
                     }
                     val x0 = pts.minOf { it.x }
@@ -195,8 +225,12 @@ internal object ChessboardCalibrator {
                     val duplicated = centers.any { (x, y, a) ->
                         hypot(cx - x, cy - y) < 0.05 && abs(area - a) < 0.02
                     }
-                    if (dx < 0.12 || dy < 0.12 || duplicated) {
-                        rejected++
+                    if (dx < 0.12 || dy < 0.12) {
+                        reject(CalibrationPhotoRejection.LOW_COVERAGE)
+                        return@forEach
+                    }
+                    if (duplicated) {
+                        reject(CalibrationPhotoRejection.DUPLICATE)
                         return@forEach
                     }
                     val grid = (0 until activePattern.rows).flatMap { row ->
@@ -225,6 +259,7 @@ internal object ChessboardCalibrator {
                     rejected,
                     "Niewystarczająca liczba różnorodnych zdjęć z pełną szachownicą.",
                     selectedPattern,
+                    rejectionCounts.toMap(),
                 )
             }
             val camera = Mat.eye(3, 3, CvType.CV_64F)
@@ -260,6 +295,7 @@ internal object ChessboardCalibrator {
                         rejected,
                         "RMS lub ogniskowe poza zakresem jakości.",
                         selectedPattern,
+                        rejectionCounts.toMap(),
                     )
                 }
                 val profile = MeasuredCalibration(
@@ -281,6 +317,7 @@ internal object ChessboardCalibrator {
                     rejected,
                     "Pomiary obliczone; zweryfikuj tor kamery.",
                     selectedPattern,
+                    rejectionCounts.toMap(),
                 )
             } finally {
                 camera.release()
@@ -294,41 +331,64 @@ internal object ChessboardCalibrator {
         }
     }
 
-    private fun readGray(resolver: ContentResolver, uri: Uri): Mat? {
-        val orientation = resolver.openInputStream(uri)?.use {
-            ExifInterface(it).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-        } ?: return null
-        // No implicit EXIF rotation: physical camera coordinates must be explicit.
-        if (orientation != ExifInterface.ORIENTATION_NORMAL &&
-            orientation != ExifInterface.ORIENTATION_UNDEFINED
-        ) {
-            return null
+    private fun readGray(resolver: ContentResolver, uri: Uri): Pair<Mat?, CalibrationPhotoRejection?> {
+        val orientation = try {
+            resolver.openInputStream(uri)?.use {
+                ExifInterface(it).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            } ?: return null to CalibrationPhotoRejection.UNREADABLE
+        } catch (_: Exception) {
+            return null to CalibrationPhotoRejection.UNREADABLE
         }
-
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        val readable = resolver.openInputStream(uri)?.use {
-            BitmapFactory.decodeStream(it, null, bounds)
-            true
-        } ?: false
-        if (!readable) return null
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-        var scale = 1
-        while (maxOf(bounds.outWidth, bounds.outHeight) / scale > 1600) scale *= 2
-        val options = BitmapFactory.Options().apply { inSampleSize = scale }
-        val bitmap = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
-            ?: return null
+        val degrees = CalibrationExifRotation.degrees(orientation)
+            ?: return null to CalibrationPhotoRejection.EXIF_MIRRORED
+        val source = try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            val metadataRead = resolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, bounds)
+                true
+            } ?: false
+            if (!metadataRead || bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                return null to CalibrationPhotoRejection.UNREADABLE
+            }
+            var scale = 1
+            while (maxOf(bounds.outWidth, bounds.outHeight) / scale > 1600) scale *= 2
+            val options = BitmapFactory.Options().apply { inSampleSize = scale }
+            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+                ?: return null to CalibrationPhotoRejection.UNREADABLE
+        } catch (_: Exception) {
+            return null to CalibrationPhotoRejection.UNREADABLE
+        }
+        val rotated = try {
+            if (degrees == 0) {
+                source
+            } else {
+                android.graphics.Bitmap.createBitmap(
+                    source,
+                    0,
+                    0,
+                    source.width,
+                    source.height,
+                    Matrix().apply { postRotate(degrees.toFloat()) },
+                    true,
+                )
+            }
+        } catch (_: Exception) {
+            source.recycle()
+            return null to CalibrationPhotoRejection.UNREADABLE
+        }
         val rgba = Mat()
         val gray = Mat()
         try {
-            Utils.bitmapToMat(bitmap, rgba)
+            Utils.bitmapToMat(rotated, rgba)
             Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
-            return gray
-        } catch (error: Exception) {
+            return gray to null
+        } catch (_: Exception) {
             gray.release()
-            throw error
+            return null to CalibrationPhotoRejection.UNREADABLE
         } finally {
             rgba.release()
-            bitmap.recycle()
+            if (rotated !== source) rotated.recycle()
+            source.recycle()
         }
     }
 }
