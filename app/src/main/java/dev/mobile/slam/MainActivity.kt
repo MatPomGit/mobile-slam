@@ -529,6 +529,15 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 color = Color(0xFFFFD166),
                 fontSize = 12.sp,
             )
+            keypointFrame?.pairSelection?.let { pair ->
+                Text(
+                    text = "Dobór par 2D: ${pair.state.label} · wspólnych: ${pair.sharedTracks} · " +
+                        "zaakceptowanych par: ${pair.acceptedPairs} · " +
+                        "ruch: ${"%.1f".format(java.util.Locale.US, pair.medianMotionPx)} px",
+                    color = Color(0xFFB8C7D1),
+                    fontSize = 12.sp,
+                )
+            }
             Text(
                 text = imuSample?.let { sample ->
                     val acceleration = if (sample.hasAccelerometer) {
