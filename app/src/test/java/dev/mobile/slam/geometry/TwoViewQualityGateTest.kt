@@ -17,8 +17,7 @@ class TwoViewQualityGateTest {
         imageHeight = 960,
     )
 
-    private fun matches(motion: Double = 12.0): List<TwoViewCorrespondence> =
-        (0 until 8).flatMap { row ->
+    private fun matches(motion: Double = 12.0): List<TwoViewCorrespondence> = (0 until 8).flatMap { row ->
             (0 until 10).map { column ->
                 val x = 120.0 + column * 100.0
                 val y = 90.0 + row * 105.0
