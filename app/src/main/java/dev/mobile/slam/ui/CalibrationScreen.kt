@@ -51,6 +51,7 @@ internal fun CalibrationScreen(
     repository: CalibrationProfileRepository,
     savedProfile: MeasuredCalibration?,
     storageWarning: String?,
+    bundledCalibration: Boolean,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -271,7 +272,11 @@ internal fun CalibrationScreen(
         val visibleProfile = profile ?: savedProfile
         visibleProfile?.let { result ->
             Text(
-                if (profile == null) "Ostatni zapisany profil" else "Parametry profilu",
+                when {
+                    profile != null -> "Parametry profilu"
+                    bundledCalibration -> "Domyślna kalibracja pomiarowa (Camera2 ID 0)"
+                    else -> "Ostatni zapisany profil"
+                },
                 style = MaterialTheme.typography.titleMedium,
             )
             CalibrationProfileSummary(result)
