@@ -70,9 +70,10 @@ class TwoViewInitializerTest {
             )
         }
 
+        // The synthetic reference explicitly fixes the same camera model in both views.
         val result = TwoViewInitializer.initialize(
             calibration = calibration,
-            opticalPathVerified = true, // Synthetic reference has explicitly known matching optics.
+            opticalPathVerified = true,
             cameraId = "0",
             fullWidth = 1280,
             fullHeight = 960,
