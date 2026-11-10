@@ -67,7 +67,7 @@ internal object LiveCalibrationValidator {
                 return LiveCalibrationAssessment(
                     LiveCalibrationState.ORIENTATION_AMBIGUOUS,
                     "Profil ${profile.referenceWidth}×${profile.referenceHeight} ma pionowy układ osi; " +
-                        "obraz CameraX ${width}×${height} może odpowiadać obrotowi 90° lub 270°. " +
+                        "obraz CameraX $width×$height może odpowiadać obrotowi 90° lub 270°. " +
                         "Żadnej z tych orientacji nie wolno przyjąć automatycznie.",
                     rotatedCandidates = rotated,
                 )
