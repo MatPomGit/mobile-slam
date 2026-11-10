@@ -571,6 +571,20 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 color = Color(0xFFB8C7D1),
                 fontSize = 12.sp,
             )
+            if (calibrationCheck.rotatedCandidates.isNotEmpty()) {
+                Text(
+                    text = "K po obrocie zdjęcia (wyłącznie diagnostyka):\n" +
+                        calibrationCheck.rotatedCandidates.joinToString("\n") { variant ->
+                            val k = variant.intrinsics
+                            "${variant.clockwiseDegrees}°: fx=${"%.1f".format(java.util.Locale.US, k.fx)} " +
+                                "fy=${"%.1f".format(java.util.Locale.US, k.fy)} " +
+                                "cx=${"%.1f".format(java.util.Locale.US, k.cx)} " +
+                                "cy=${"%.1f".format(java.util.Locale.US, k.cy)}"
+                        },
+                    color = Color(0xFFFFD166),
+                    fontSize = 12.sp,
+                )
+            }
         }
     }
 }
