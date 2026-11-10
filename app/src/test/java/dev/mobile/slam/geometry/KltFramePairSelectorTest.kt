@@ -15,7 +15,7 @@ import org.junit.Test
 class KltFramePairSelectorTest {
     private val geometry = FrameGeometry(640, 480, PixelCrop(20, 10, 620, 470), 0)
 
-    private fun frame(id: Long, segment: Long = 1L, timeNs: Long = 1_000_000_000L + id * 33_000_000L, shape: FrameGeometry = geometry): FrameMetadata =
+    private fun frame(id: Long, segment: Long = 1L, timeNs: Long = id * 33_000_000L, shape: FrameGeometry = geometry): FrameMetadata =
         FrameMetadata(id, segment, timeNs, shape)
 
     private fun tracks(dx: Float = 0f, dy: Float = 0f, status: FeatureStatus = FeatureStatus.TRACKED, count: Int = 64): List<FeatureTrack> =
