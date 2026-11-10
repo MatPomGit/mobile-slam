@@ -33,7 +33,7 @@ import dev.mobile.slam.frontend.SettingsCodec
 
 /** Validated, persistent parameters for the currently implemented vision and IMU HUD paths. */
 @Composable
-fun SettingsScreen(
+internal fun SettingsScreen(
     settings: Settings,
     calibration: MeasuredCalibration?,
     calibrationWarning: String?,
