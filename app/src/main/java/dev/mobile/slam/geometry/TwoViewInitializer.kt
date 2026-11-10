@@ -76,12 +76,12 @@ internal object TwoViewInitializer {
         try {
             val first = own(
                 MatOfPoint2f().apply {
-    fromArray(*normalized.map { Point(it.first.x, it.first.y) }.toTypedArray())
+                    fromArray(*normalized.map { Point(it.first.x, it.first.y) }.toTypedArray())
                 },
             )
             val second = own(
                 MatOfPoint2f().apply {
-    fromArray(*normalized.map { Point(it.second.x, it.second.y) }.toTypedArray())
+                    fromArray(*normalized.map { Point(it.second.x, it.second.y) }.toTypedArray())
                 },
             )
             val mask = own(Mat())
@@ -139,12 +139,12 @@ internal object TwoViewInitializer {
             }
             val pair1 = own(
                 MatOfPoint2f().apply {
-    fromArray(*indices.map { Point(normalized[it].first.x, normalized[it].first.y) }.toTypedArray())
+                    fromArray(*indices.map { Point(normalized[it].first.x, normalized[it].first.y) }.toTypedArray())
                 },
             )
             val pair2 = own(
                 MatOfPoint2f().apply {
-    fromArray(*indices.map { Point(normalized[it].second.x, normalized[it].second.y) }.toTypedArray())
+                    fromArray(*indices.map { Point(normalized[it].second.x, normalized[it].second.y) }.toTypedArray())
                 },
             )
             val p1 = own(Mat.zeros(3, 4, CvType.CV_64F))
