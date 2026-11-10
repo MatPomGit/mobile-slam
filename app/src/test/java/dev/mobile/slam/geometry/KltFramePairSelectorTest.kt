@@ -81,13 +81,16 @@ class KltFramePairSelectorTest {
     @Test
     fun timestampGapAndAnchorAgePreventStalePairing() {
         val selector = KltFramePairSelector(
-            FramePairConfig(minFrameGap = 1L, maxFrameGapMs = 100L, maxAnchorAgeMs = 150L),
+            FramePairConfig(minFrameGap = 3L, maxFrameGapMs = 100L, maxAnchorAgeMs = 150L),
         )
         selector.observe(frame(1, timeNs = 1_000_000_000L), tracks(status = FeatureStatus.DETECTED))
         val gap = selector.observe(frame(2, timeNs = 1_300_000_000L), tracks(dx = 12f))
         assertEquals(FramePairState.TIME_GAP, gap.state)
         assertNull(gap.pair)
-        selector.observe(frame(3, timeNs = 1_390_000_000L), tracks(dx = 24f))
+        assertEquals(
+            FramePairState.TOO_SOON,
+            selector.observe(frame(3, timeNs = 1_390_000_000L), tracks(dx = 24f)).state,
+        )
         val expired = selector.observe(frame(4, timeNs = 1_480_000_000L), tracks(dx = 30f))
         assertEquals(FramePairState.ANCHOR_EXPIRED, expired.state)
         assertNull(expired.pair)
@@ -153,8 +156,10 @@ class KltFramePairSelectorTest {
         assertEquals(32, result.pair!!.matches.size)
         assertNotNull(result.pair)
         selector.reset()
-        assertEquals(FramePairState.WAITING, selector.observe(frame(3), tracks()).state)
-        assertEquals(0L, selector.observe(frame(4), tracks(dx = 12f)).acceptedPairs)
+        val fresh = selector.observe(frame(3), tracks())
+        assertEquals(FramePairState.WAITING, fresh.state)
+        assertEquals(0L, fresh.acceptedPairs)
+        assertEquals(1L, selector.observe(frame(4), tracks(dx = 12f)).acceptedPairs)
         assertTrue(result.pair.matches.isNotEmpty())
     }
 
