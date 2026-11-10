@@ -3,6 +3,10 @@ package dev.mobile.slam.sensors
 import android.os.SystemClock
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import dev.mobile.slam.calib.CameraXChessboardProbe
+import dev.mobile.slam.calib.LiveBoardProbeSettings
+import dev.mobile.slam.calib.LiveBoardProbeSnapshot
+import dev.mobile.slam.calib.MeasuredCalibration
 import dev.mobile.slam.diagnostics.FrameObservation
 import dev.mobile.slam.frontend.FeatureTrack
 import dev.mobile.slam.frontend.FrameGeometry
@@ -40,6 +44,7 @@ internal data class FrameKeypoints(
     val tracks: List<FeatureTrack> = emptyList(),
     val trackingMetrics: TrackingMetrics? = null,
     val pairSelection: FramePairSelection? = null,
+    val boardProbe: LiveBoardProbeSnapshot? = null,
     val error: String? = null,
 )
 
@@ -47,15 +52,25 @@ internal class CameraAnalyzer(
     private val settings: Settings,
     private val callbackExecutor: Executor,
     private val onObservation: ((FrameObservation) -> Unit)? = null,
+    calibration: MeasuredCalibration? = null,
+    boardProbeSettings: LiveBoardProbeSettings? = null,
     private val onFrame: (FrameKeypoints) -> Unit,
 ) : ImageAnalysis.Analyzer {
     private var detector: FastFeatureDetector? = null
     private var featureTracker: KltFeatureTracker? = null
     private val pairSelector = KltFramePairSelector()
+    private val boardProbe = boardProbeSettings?.let { CameraXChessboardProbe(calibration, it) }
     private var openCvInitialized = false
     private var openCvUnavailable = false
     private val frameOrder = FrameOrderGate()
     private val snapshots = LatestSnapshotDispatcher(callbackExecutor, onFrame)
+
+    @Volatile
+    private var boundCameraId: String? = null
+
+    fun setBoundCameraId(id: String?) {
+        boundCameraId = id
+    }
 
     override fun analyze(image: ImageProxy) {
         val startedNs = SystemClock.elapsedRealtimeNanos()
@@ -104,6 +119,7 @@ internal class CameraAnalyzer(
                 val tracking = (featureTracker ?: KltFeatureTracker(settings).also { featureTracker = it })
                     .process(grayscale, metadata, points)
                 val pairSelection = pairSelector.observe(metadata, tracking.tracks)
+                val boardSnapshot = boardProbe?.observe(grayscale, metadata.geometry, metadata.timestampNs, boundCameraId)
                 publish(
                     FrameKeypoints(
                         width = image.width,
@@ -116,6 +132,7 @@ internal class CameraAnalyzer(
                         tracks = tracking.tracks,
                         trackingMetrics = tracking.metrics,
                         pairSelection = pairSelection,
+                        boardProbe = boardSnapshot,
                     ),
                 )
             } finally {
@@ -174,6 +191,8 @@ internal class CameraAnalyzer(
     fun close() {
         snapshots.close()
         pairSelector.reset()
+        boardProbe?.close()
+        boundCameraId = null
         featureTracker?.close()
         featureTracker = null
         detector?.clear()
