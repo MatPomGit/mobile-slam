@@ -73,6 +73,21 @@ The Live screen reads the last locally saved measured camera profile, if one exi
 
 The validator is covered by deterministic JVM tests for missing/wrong camera IDs, waiting for frames, incompatible aspect/crop and uniform scaling. Physical-device acceptance remains open in #9 and #4.
 
+## Two-view geometry core (M2 / issue #10, experimental)
+
+An isolated `geometry/TwoViewInitializer` now implements a single-shot, offline **calibrated two-view** computation. It consumes immutable, stable-ID correspondences in **crop-relative unrotated pixels** from two frames with the same camera and full-frame/crop geometry. The caller must explicitly supply **independently verified** optical-path evidence (`opticalPathVerified = true`). A saved profile or Camera2 ID match alone does not satisfy that prerequisite. **The Live HUD and KLT frontend do not invoke this estimator.**
+
+The sequence is:
+
+1. Validate measured intrinsics and geometry, unique track IDs, image bounds, bounded correspondence count, spatial coverage and observable motion.
+2. Invert the stored five-coefficient Brown–Conrady distortion to normalized image coordinates, then call OpenCV `findEssentialMat` with RANSAC and `recoverPose`.
+3. Triangulate only recovered inliers with `P1=[I|0]`, `P2=[R21|t21]` and check finite coordinates, positive depth in both cameras, per-view reprojection error and **median triangulation parallax**.
+4. Return immutable coordinates and the relative world-to-camera-2 transform, or a named failure reason without fabricating a 3D pose.
+
+**Coordinate convention:** camera 1 defines the world frame; `X_camera2 = R21·X_world + t21`. Camera 2's center in the first frame is `C2 = −R21ᵀ·t21`. Recovered translation has **arbitrary unit length**, and all reconstructed 3D coordinates have **unknown metric scale**. Inlier counts and residuals are empirical diagnostics, not hardware accuracy claims. The module does not yet select keyframes, maintain a map, run PnP, handle rolling shutter, or distinguish all planar/pure-rotation degeneracies. These require follow-up validation before enabling Live SLAM.
+
+Deterministic pure-JVM tests cover rejection gates. Android instrumentation includes a seeded synthetic RANSAC+pose+triangulation test with outliers and an unverified-calibration rejection test; **GitHub CI compiles, but does not execute, instrumentation tests**. Physical-camera acceptance and measured-scene reconstruction remain open in #9, #10 and #4.
+
 ## Usage in class
 
 Move the camera across a textured scene and observe the location and count of FAST corners. Compare low- and high-texture surfaces and different motion conditions. KLT trajectories show image-space motion only; neither track counts nor displacements constitute a solved camera pose.
