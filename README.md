@@ -67,6 +67,12 @@ A successful profile reports physical-camera ID **entered by the operator**, the
 
 **Scientific limitation:** the user-entered camera ID and image RMS do not independently verify that selected photographs came from the same optical pipeline as CameraX ImageAnalysis (sensor crop, stabilization, zoom, focusing and orientation can differ). EXIF rotation normalization makes profile K relative to **oriented, decoded image pixels**, not automatically to unrotated Camera2 sensor coordinates. A photo-derived profile must be validated against actual CameraX frames and independent chessboard reprojection measurements before use for essential-matrix triangulation or PnP. There is **no automatic activation** of the profile in Live/KLT, and monocular metric scale is still unknown. Issue #9 physical-device acceptance remains open.
 
+## Read-only measured calibration compatibility in Live (issue #9)
+
+The Live screen reads the last locally saved measured camera profile, if one exists. It compares the recorded physical Camera2 ID against the actual bound camera ID and the profile's full-frame dimensions/crop against the **observed** `ImageProxy` buffer (not the requested CameraX resolution). A dedicated fail-closed validator reports: no profile, unknown camera ID, different physical camera, no valid frame yet, incompatible geometry, or a geometry-compatible **unverified** candidate. For compatible frames only, it computes a transformed `K` for read-only display, including the observed crop offset. Otherwise the HUD explicitly labels its fixed 640×480 intrinsic parameters as DEMO. The measured candidate is **not** applied to FAST/KLT, undistortion, essential-matrix/PnP, camera fusion, or exported as an accepted hardware calibration. Device-optics equivalence, focus/zoom, EXIF-to-sensor mapping, stabilization and actual crop must still be verified before enabling quantitative geometry.
+
+The validator is covered by deterministic JVM tests for missing/wrong camera IDs, waiting for frames, incompatible aspect/crop and uniform scaling. Physical-device acceptance remains open in #9 and #4.
+
 ## Usage in class
 
 Move the camera across a textured scene and observe the location and count of FAST corners. Compare low- and high-texture surfaces and different motion conditions. KLT trajectories show image-space motion only; neither track counts nor displacements constitute a solved camera pose.

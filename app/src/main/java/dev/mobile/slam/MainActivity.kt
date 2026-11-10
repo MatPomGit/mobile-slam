@@ -59,8 +59,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.mobile.slam.calib.CalibrationCrop
 import dev.mobile.slam.calib.CalibrationProfileRepository
 import dev.mobile.slam.calib.CameraIntrinsics
+import dev.mobile.slam.calib.LiveCalibrationState
+import dev.mobile.slam.calib.LiveCalibrationValidator
+import dev.mobile.slam.calib.MeasuredCalibration
 import dev.mobile.slam.diagnostics.CameraObservationRecorder
 import dev.mobile.slam.frontend.FeatureStatus
 import dev.mobile.slam.frontend.Settings
@@ -148,7 +152,7 @@ private fun AppRoot(onExit: () -> Unit) {
                     if (effectiveSettings == null) {
                         Text("Wczytywanie ustawień…")
                     } else {
-                        SlamScreen(effectiveSettings, diagnosticsRecorder)
+                        SlamScreen(effectiveSettings, diagnosticsRecorder, calibration?.profile)
                     }
                 }
             }
@@ -235,7 +239,7 @@ private fun AppRoot(onExit: () -> Unit) {
 }
 
 @Composable
-private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorder) {
+private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorder, measuredCalibration: MeasuredCalibration?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var cameraGranted by remember {
@@ -271,7 +275,7 @@ private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorde
     }
 
     if (cameraGranted) {
-        LiveSlamScreen(settings, diagnostics)
+        LiveSlamScreen(settings, diagnostics, measuredCalibration)
     } else {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -288,7 +292,7 @@ private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorde
 
 @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
-private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRecorder) {
+private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRecorder, measuredCalibration: MeasuredCalibration?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val intrinsics = remember { CameraIntrinsics.default640x480() }
@@ -297,6 +301,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
     var imuSample by remember { mutableStateOf<ImuSample?>(null) }
     var imuAvailable by remember { mutableStateOf(false) }
     var cameraError by remember { mutableStateOf<String?>(null) }
+    var activeCameraId by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(lifecycleOwner, settings.imuHudIntervalMs) {
         val imuSource = ImuSource(context, settings.imuHudIntervalMs * 1_000_000L) { sample ->
@@ -385,13 +390,12 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         useCases,
                     )
-                    diagnostics.cameraBound(
-                        try {
-                            Camera2CameraInfo.from(camera.cameraInfo).cameraId
-                        } catch (_: Exception) {
-                            null
-                        },
-                    )
+                    activeCameraId = try {
+                        Camera2CameraInfo.from(camera.cameraInfo).cameraId
+                    } catch (_: Exception) {
+                        null
+                    }
+                    diagnostics.cameraBound(activeCameraId)
                     boundPreview = preview
                     boundAnalysis = analysis
                     boundWidth = view.width
@@ -399,6 +403,8 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                     keypointFrame = null
                     cameraError = null
                 } catch (_: Exception) {
+                    activeCameraId = null
+                    keypointFrame = null
                     cameraError = "Nie udało się uruchomić kamery."
                 }
             }
@@ -425,6 +431,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
 
             onDispose {
                 disposed.set(true)
+                activeCameraId = null
                 view.removeOnLayoutChangeListener(layoutListener)
                 val preview = boundPreview
                 val analysis = boundAnalysis
@@ -437,6 +444,24 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 analyzerExecutor.shutdown()
             }
         }
+    }
+
+    val frame = keypointFrame?.takeIf { it.error == null }
+    val calibrationCheck = LiveCalibrationValidator.assess(
+        profile = measuredCalibration,
+        cameraId = activeCameraId,
+        width = frame?.width,
+        height = frame?.height,
+        crop = frame?.crop?.let { CalibrationCrop(it.left, it.top, it.right, it.bottom) },
+    )
+    val candidateK = calibrationCheck.candidateIntrinsics
+    val displayedK = if (candidateK == null) {
+        "DEMO K: fx=${intrinsics.fx.toInt()} fy=${intrinsics.fy.toInt()} " +
+            "cx=${intrinsics.cx.toInt()} cy=${intrinsics.cy.toInt()}"
+    } else {
+        "K pomiarowe (tylko podgląd): " +
+            "fx=${candidateK.fx.toInt()} fy=${candidateK.fy.toInt()} " +
+            "cx=${candidateK.cx.toInt()} cy=${candidateK.cy.toInt()}"
     }
 
     Column(
@@ -523,12 +548,19 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 fontSize = 12.sp,
             )
             Text(
-                text = "Obraz ${keypointFrame?.let { "${it.width}×${it.height}" } ?: "640×480"} · " +
-                    "t=${keypointFrame?.timestampNs ?: 0L} ns · " +
-                    "fx=${intrinsics.fx.toInt()} fy=${intrinsics.fy.toInt()} " +
-                    "cx=${intrinsics.cx.toInt()} cy=${intrinsics.cy.toInt()} (wartości przykładowe)",
+                text = "Kalibracja: ${calibrationCheck.message}",
+                color = if (calibrationCheck.state == LiveCalibrationState.GEOMETRY_COMPATIBLE_UNVERIFIED) {
+                    Color(0xFFFFD166)
+                } else {
+                    Color(0xFFB8C7D1)
+                },
+                fontSize = 12.sp,
+            )
+            Text(
+                text = "Obraz ${frame?.let { "${it.width}×${it.height}" } ?: "niezmierzony"} · " +
+                    "t=${frame?.timestampNs ?: 0L} ns · " + displayedK,
                 color = Color(0xFFB8C7D1),
-                fontSize = 11.sp,
+                fontSize = 12.sp,
             )
         }
     }
