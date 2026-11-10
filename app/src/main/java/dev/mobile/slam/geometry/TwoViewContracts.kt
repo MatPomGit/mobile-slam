@@ -100,11 +100,7 @@ internal sealed interface TwoViewResult {
 
 /** Pure-JVM preflight; never treats 2D flow or a homography as a solved pose. */
 internal object TwoViewQualityGate {
-    fun reject(
-        matches: List<TwoViewCorrespondence>,
-        intrinsics: CameraIntrinsics,
-        config: TwoViewConfig,
-    ): TwoViewFailure? {
+    fun reject(matches: List<TwoViewCorrespondence>, intrinsics: CameraIntrinsics, config: TwoViewConfig): TwoViewFailure? {
         if (matches.size < config.minMatches) return TwoViewFailure.TOO_FEW_MATCHES
         if (matches.size > config.maxMatches) return TwoViewFailure.TOO_MANY_MATCHES
         if (matches.map { it.trackId }.toSet().size != matches.size) return TwoViewFailure.DUPLICATE_IDS
@@ -118,8 +114,7 @@ internal object TwoViewQualityGate {
         ) {
             return TwoViewFailure.INVALID_COORDINATES
         }
-        fun inside(point: PixelPoint) =
-            point.x >= 0.0 && point.x < width && point.y >= 0.0 && point.y < height
+        fun inside(point: PixelPoint) = point.x >= 0.0 && point.x < width && point.y >= 0.0 && point.y < height
 
         if (matches.any { !inside(it.first) || !inside(it.second) }) {
             return TwoViewFailure.INVALID_COORDINATES
