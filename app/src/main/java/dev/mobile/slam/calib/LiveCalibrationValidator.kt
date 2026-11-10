@@ -11,6 +11,7 @@ internal enum class LiveCalibrationState {
     CAMERA_MISMATCH,
     WAITING_FOR_FRAME,
     GEOMETRY_MISMATCH,
+    ORIENTATION_AMBIGUOUS,
     GEOMETRY_COMPATIBLE_UNVERIFIED,
 }
 
@@ -18,6 +19,7 @@ internal data class LiveCalibrationAssessment(
     val state: LiveCalibrationState,
     val message: String,
     val candidateIntrinsics: CameraIntrinsics? = null,
+    val rotatedCandidates: List<OrientationIntrinsicsCandidate> = emptyList(),
 )
 
 internal object LiveCalibrationValidator {
@@ -54,6 +56,22 @@ internal object LiveCalibrationValidator {
         }
         val intrinsics = profile.forAnalysis(cameraId, width, height, crop)
         if (intrinsics == null) {
+            val rotated = CalibrationOrientationCandidates.forAnalysis(
+                profile,
+                cameraId,
+                width,
+                height,
+                crop,
+            )
+            if (rotated.isNotEmpty()) {
+                return LiveCalibrationAssessment(
+                    LiveCalibrationState.ORIENTATION_AMBIGUOUS,
+                    "Profil ${profile.referenceWidth}×${profile.referenceHeight} ma pionowy układ osi; " +
+                        "obraz CameraX $width×$height może odpowiadać obrotowi 90° lub 270°. " +
+                        "Żadnej z tych orientacji nie wolno przyjąć automatycznie.",
+                    rotatedCandidates = rotated,
+                )
+            }
             return LiveCalibrationAssessment(
                 LiveCalibrationState.GEOMETRY_MISMATCH,
                 "Profil kamery zgodny, ale rozdzielczość, proporcje lub crop są niezgodne.",
