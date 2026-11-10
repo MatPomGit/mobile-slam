@@ -18,16 +18,16 @@ class TwoViewQualityGateTest {
     )
 
     private fun matches(motion: Double = 12.0): List<TwoViewCorrespondence> = (0 until 8).flatMap { row ->
-            (0 until 10).map { column ->
-                val x = 120.0 + column * 100.0
-                val y = 90.0 + row * 105.0
-                TwoViewCorrespondence(
-                    trackId = (row * 10 + column + 1).toLong(),
-                    first = PixelPoint(x, y),
-                    second = PixelPoint(x + motion, y + motion / 4.0),
-                )
-            }
+        (0 until 10).map { column ->
+            val x = 120.0 + column * 100.0
+            val y = 90.0 + row * 105.0
+            TwoViewCorrespondence(
+                trackId = (row * 10 + column + 1).toLong(),
+                first = PixelPoint(x, y),
+                second = PixelPoint(x + motion, y + motion / 4.0),
+            )
         }
+    }
 
     @Test
     fun acceptsWellDistributedMovingFeatures() {
