@@ -59,6 +59,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import dev.mobile.slam.calib.CalibrationProfileRepository
 import dev.mobile.slam.calib.CameraIntrinsics
 import dev.mobile.slam.diagnostics.CameraObservationRecorder
 import dev.mobile.slam.frontend.FeatureStatus
@@ -102,6 +103,10 @@ private fun AppRoot(onExit: () -> Unit) {
     val context = LocalContext.current
     val repository = remember(context.applicationContext) { SettingsRepository(context.applicationContext) }
     val diagnosticsRecorder = remember { CameraObservationRecorder() }
+    val calibrationRepository = remember(context.applicationContext) {
+        CalibrationProfileRepository(context.applicationContext)
+    }
+    val calibration by calibrationRepository.snapshots.collectAsState(initial = null)
     val loaded by repository.snapshots.collectAsState(initial = null)
     var overrideSettings by remember { mutableStateOf<Settings?>(null) }
     val effectiveSettings = overrideSettings ?: loaded?.settings
@@ -154,6 +159,8 @@ private fun AppRoot(onExit: () -> Unit) {
             } else {
                 SettingsScreen(
                     settings = effectiveSettings,
+                    calibration = calibration?.profile,
+                    calibrationWarning = calibration?.warning,
                     busy = saving,
                     warning = if (overrideSettings == null) loaded?.warning else null,
                     status = saveStatus,
@@ -207,7 +214,12 @@ private fun AppRoot(onExit: () -> Unit) {
             },
             onBack = onBack,
         )
-        AppDestination.CALIBRATION -> CalibrationScreen(onBack = onBack)
+        AppDestination.CALIBRATION -> CalibrationScreen(
+            repository = calibrationRepository,
+            savedProfile = calibration?.profile,
+            storageWarning = calibration?.warning,
+            onBack = onBack,
+        )
         AppDestination.ABOUT -> AboutScreen(version = BuildConfig.VERSION_NAME, onBack = onBack)
         else -> {
             MainMenuScreen(

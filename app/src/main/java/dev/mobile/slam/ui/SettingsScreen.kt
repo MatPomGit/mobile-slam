@@ -27,13 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import dev.mobile.slam.calib.MeasuredCalibration
 import dev.mobile.slam.frontend.Settings
 import dev.mobile.slam.frontend.SettingsCodec
 
 /** Validated, persistent parameters for the currently implemented vision and IMU HUD paths. */
 @Composable
-fun SettingsScreen(
+internal fun SettingsScreen(
     settings: Settings,
+    calibration: MeasuredCalibration?,
+    calibrationWarning: String?,
     busy: Boolean,
     warning: String?,
     status: String?,
@@ -138,6 +141,19 @@ fun SettingsScreen(
             }
         }
 
+        Text("Kalibracja kamery", style = MaterialTheme.typography.titleMedium)
+        if (calibrationWarning != null) {
+            Text(calibrationWarning, color = MaterialTheme.colorScheme.error)
+        }
+        if (calibration == null) {
+            Text(
+                "Brak zapisanego profilu pomiarowego. Otwórz Kalibrację kamery w menu, " +
+                    "wykonaj serię zdjęć lub zaimportuj profil JSON.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            CalibrationProfileSummary(calibration)
+        }
         FutureSetting(title = "Obraz i kamera: rozdzielczość, FPS, wybór kamery", milestone = "M2")
         Text("Śledzenie KLT", style = MaterialTheme.typography.titleMedium)
         Text(
