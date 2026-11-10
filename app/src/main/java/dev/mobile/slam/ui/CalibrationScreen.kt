@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.mobile.slam.calib.CalibrationProfileJson
+import dev.mobile.slam.calib.CalibrationProfileRepository
 import dev.mobile.slam.calib.ChessboardCalibrator
 import dev.mobile.slam.calib.ChessboardSpec
 import dev.mobile.slam.calib.MeasuredCalibration
@@ -40,14 +41,18 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 /**
  * User-directed photo calibration. Does not open CameraX or activate a calibrated
  * pose path. A chosen photo series must be from one known camera/lens/focus state.
  */
 @Composable
-internal fun CalibrationScreen(onBack: () -> Unit) {
+internal fun CalibrationScreen(
+    repository: CalibrationProfileRepository,
+    savedProfile: MeasuredCalibration?,
+    storageWarning: String?,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var cameraId by remember { mutableStateOf("0") }
@@ -90,8 +95,24 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
                                 " narożników wewnętrznych (" + (it.columns + 1) +
                                 "×" + (it.rows + 1) + " pól). "
                         } ?: ""
-                        status = detected + result.reason +
-                            " Przyjęto: " + result.accepted + ", odrzucono: " + result.rejected + "."
+                        val rejections = result.rejectionCounts.entries.joinToString("; ") { (reason, count) ->
+                            "${reason.label}: $count"
+                        }
+                        val report = detected + result.reason +
+                            " Przyjęto: " + result.accepted + ", odrzucono: " + result.rejected + "." +
+                            if (rejections.isEmpty()) "" else " Przyczyny: $rejections."
+                        val measured = result.profile
+                        status = if (measured != null) {
+                            try {
+                                repository.save(measured)
+                                "$report Profil zapisano w aplikacji."
+                            } catch (cause: Exception) {
+                                if (cause is CancellationException) throw cause
+                                "$report Nie udało się zapisać profilu w aplikacji."
+                            }
+                        } else {
+                            report
+                        }
                     } catch (cause: Exception) {
                         if (cause is CancellationException) throw cause
                         status = "Nie udało się przeprowadzić kalibracji na wybranych zdjęciach."
@@ -123,7 +144,13 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
                         CalibrationProfileJson.decode(json)
                     }
                     profile = loaded
-                    status = "Zaimportowano profil. Zweryfikuj źródło zdjęć i zgodność aparatu."
+                    status = try {
+                        repository.save(loaded)
+                        "Zaimportowano i zapisano profil. Zweryfikuj źródło zdjęć i zgodność aparatu."
+                    } catch (cause: Exception) {
+                        if (cause is CancellationException) throw cause
+                        "Zaimportowano profil, ale nie udało się zapisać go w aplikacji."
+                    }
                 } catch (cause: Exception) {
                     if (cause is CancellationException) throw cause
                     status = "Nieprawidłowy profil JSON lub brak dostępu do pliku."
@@ -132,7 +159,7 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
         }
     }
     val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        val value = profile
+        val value = profile ?: savedProfile
         if (uri != null && value != null) {
             scope.launch {
                 status = try {
@@ -167,7 +194,7 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
             "Wykonaj 12–25 zdjęć szachownicy w różnych położeniach i nachyleniach, " +
                 "bez zmiany zoomu i ostrości. Jeden wymiar wzorca to liczba pól minus jeden " +
                 "(narożniki wewnętrzne). Wszystkie zdjęcia muszą mieć tę samą rozdzielczość " +
-                "i orientację bez obrotu EXIF.",
+                "i orientację po uwzględnieniu obrotu EXIF.",
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
@@ -238,29 +265,22 @@ internal fun CalibrationScreen(onBack: () -> Unit) {
             Text("Importuj profil JSON")
         }
         Text(status, style = MaterialTheme.typography.bodySmall)
-        profile?.let { result ->
-            Text("Parametry profilu", style = MaterialTheme.typography.titleMedium)
+        if (storageWarning != null) {
+            Text(storageWarning, color = MaterialTheme.colorScheme.error)
+        }
+        val visibleProfile = profile ?: savedProfile
+        visibleProfile?.let { result ->
             Text(
-                "Kamera " + result.cameraId + " · " +
-                    result.referenceWidth + "×" + result.referenceHeight + " px\n" +
-                    "fx=" + format(result.fx) + "  fy=" + format(result.fy) +
-                    "  cx=" + format(result.cx) + "  cy=" + format(result.cy) + "\n" +
-                    "RMS reprojekcji: " + format(result.rmsReprojectionPx) + " px\n" +
-                    "Źródło: " + result.provenance.name,
+                if (profile == null) "Ostatni zapisany profil" else "Parametry profilu",
+                style = MaterialTheme.typography.titleMedium,
             )
+            CalibrationProfileSummary(result)
             OutlinedButton(
                 onClick = { exporter.launch("mobile-slam-calibration.json") },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
                 Text("Eksportuj profil JSON")
             }
-            Text(
-                "Profil nie jest automatycznie stosowany do CameraX, triangulacji ani PnP. " +
-                    "Przed zastosowaniem sprawdź ten sam aparat, crop, orientację i parametry obiektywu.",
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
     }
 }
-
-private fun format(value: Double): String = String.format(Locale.US, "%.3f", value)
