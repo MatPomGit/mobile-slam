@@ -174,6 +174,7 @@ private fun AppRoot(onExit: () -> Unit) {
                     settings = effectiveSettings,
                     calibration = calibration?.profile,
                     calibrationWarning = calibration?.warning,
+                    bundledCalibration = calibration?.bundledDefault == true,
                     busy = saving,
                     warning = if (overrideSettings == null) loaded?.warning else null,
                     status = saveStatus,
@@ -231,6 +232,7 @@ private fun AppRoot(onExit: () -> Unit) {
             repository = calibrationRepository,
             savedProfile = calibration?.profile,
             storageWarning = calibration?.warning,
+            bundledCalibration = calibration?.bundledDefault == true,
             onBack = onBack,
         )
         AppDestination.ABOUT -> AboutScreen(version = BuildConfig.VERSION_NAME, onBack = onBack)
@@ -304,7 +306,7 @@ private fun SlamScreen(settings: Settings, diagnostics: CameraObservationRecorde
 private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRecorder, measuredCalibration: MeasuredCalibration?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val intrinsics = remember { CameraIntrinsics.default640x480() }
+    val demoIntrinsics = remember { CameraIntrinsics.default640x480() }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var keypointFrame by remember { mutableStateOf<FrameKeypoints?>(null) }
     var imuSample by remember { mutableStateOf<ImuSample?>(null) }
@@ -522,13 +524,22 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
         cursorColor = Color.White,
     )
     val candidateK = calibrationCheck.candidateIntrinsics
-    val displayedK = if (candidateK == null) {
-        "DEMO K: fx=${intrinsics.fx.toInt()} fy=${intrinsics.fy.toInt()} " +
-            "cx=${intrinsics.cx.toInt()} cy=${intrinsics.cy.toInt()}"
-    } else {
-        "K pomiarowe (tylko podgląd): " +
-            "fx=${candidateK.fx.toInt()} fy=${candidateK.fy.toInt()} " +
-            "cx=${candidateK.cx.toInt()} cy=${candidateK.cy.toInt()}"
+    val displayedK = when {
+        candidateK != null -> {
+            "K pomiarowe (tylko podgląd): " +
+                "fx=${candidateK.fx.toInt()} fy=${candidateK.fy.toInt()} " +
+                "cx=${candidateK.cx.toInt()} cy=${candidateK.cy.toInt()}"
+        }
+        measuredCalibration != null -> {
+            "Zapisane K ${measuredCalibration.referenceWidth}×${measuredCalibration.referenceHeight} " +
+                "(nieprzeliczone): fx=${measuredCalibration.fx.toInt()} " +
+                "fy=${measuredCalibration.fy.toInt()} " +
+                "cx=${measuredCalibration.cx.toInt()} cy=${measuredCalibration.cy.toInt()}"
+        }
+        else -> {
+            "DEMO K: fx=${demoIntrinsics.fx.toInt()} fy=${demoIntrinsics.fy.toInt()} " +
+                "cx=${demoIntrinsics.cx.toInt()} cy=${demoIntrinsics.cy.toInt()}"
+        }
     }
 
     Column(

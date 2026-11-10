@@ -15,6 +15,7 @@ private val Context.calibrationDataStore by preferencesDataStore(name = "mobile_
 internal data class CalibrationStorageSnapshot(
     val profile: MeasuredCalibration?,
     val warning: String? = null,
+    val bundledDefault: Boolean = false,
 )
 
 internal class CalibrationProfileRepository(context: Context) {
@@ -24,17 +25,27 @@ internal class CalibrationProfileRepository(context: Context) {
         .map { preferences ->
             val json = preferences[PROFILE_JSON]
             if (json == null) {
-                CalibrationStorageSnapshot(null)
+                CalibrationStorageSnapshot(BundledCalibrationProfile.measured, bundledDefault = true)
             } else {
                 runCatching {
                     CalibrationStorageSnapshot(CalibrationProfileJson.decode(json))
                 }.getOrElse {
-                    CalibrationStorageSnapshot(null, "Zapisany profil kalibracji jest nieprawidłowy.")
+                    CalibrationStorageSnapshot(
+                        BundledCalibrationProfile.measured,
+                        "Zapisany profil jest nieprawidłowy. Użyto domyślnej kalibracji pomiarowej.",
+                        bundledDefault = true,
+                    )
                 }
             }
         }.catch { cause ->
             if (cause is IOException) {
-                emit(CalibrationStorageSnapshot(null, "Nie udało się odczytać profilu kalibracji."))
+                emit(
+                    CalibrationStorageSnapshot(
+                        BundledCalibrationProfile.measured,
+                        "Nie udało się odczytać profilu użytkownika. Użyto domyślnej kalibracji pomiarowej.",
+                        bundledDefault = true,
+                    ),
+                )
             } else {
                 throw cause
             }
