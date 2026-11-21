@@ -75,6 +75,7 @@ import dev.mobile.slam.calib.LiveCalibrationState
 import dev.mobile.slam.calib.LiveCalibrationValidator
 import dev.mobile.slam.calib.MeasuredCalibration
 import dev.mobile.slam.diagnostics.CameraObservationRecorder
+import dev.mobile.slam.frontend.CameraBindRetryBudget
 import dev.mobile.slam.frontend.FeatureStatus
 import dev.mobile.slam.frontend.Settings
 import dev.mobile.slam.frontend.SettingsRepository
@@ -373,8 +374,19 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
             var boundWidth = 0
             var boundHeight = 0
             val mainHandler = Handler(Looper.getMainLooper())
-            var viewportRetryCount = 0
+            val retryBudget = CameraBindRetryBudget()
             var pendingRetry: Runnable? = null
+            lateinit var retryBinding: () -> Unit
+
+            fun scheduleRetry() {
+                if (pendingRetry != null || !retryBudget.acquire(disposed.get())) return
+                val retry = Runnable {
+                    pendingRetry = null
+                    retryBinding()
+                }
+                pendingRetry = retry
+                mainHandler.postDelayed(retry, 250L)
+            }
 
             fun bindCamera() {
                 val provider = cameraProvider ?: return
@@ -383,15 +395,7 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                 if (view.width <= 0 || view.height <= 0 || view.viewPort == null) {
                     // Compose/AndroidView can report layout before PreviewView creates its ViewPort.
                     // A layout-only trigger would then leave the camera unbound indefinitely.
-                    if (pendingRetry == null && viewportRetryCount < 12) {
-                        viewportRetryCount++
-                        val retry = Runnable {
-                            pendingRetry = null
-                            bindCamera()
-                        }
-                        pendingRetry = retry
-                        mainHandler.postDelayed(retry, 250L)
-                    }
+                    scheduleRetry()
                     return
                 }
                 val viewPort = view.viewPort ?: return
@@ -421,7 +425,15 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                     val previousPreview = boundPreview
                     val previousAnalysis = boundAnalysis
                     if (previousPreview != null && previousAnalysis != null) {
-                        provider.unbind(previousPreview, previousAnalysis)
+                        // The previous binding is no longer valid even if the next bind fails.
+                        try {
+                            provider.unbind(previousPreview, previousAnalysis)
+                        } finally {
+                            boundPreview = null
+                            boundAnalysis = null
+                            boundWidth = 0
+                            boundHeight = 0
+                        }
                     }
                     val camera = provider.bindToLifecycle(
                         lifecycleOwner,
@@ -439,17 +451,26 @@ private fun LiveSlamScreen(settings: Settings, diagnostics: CameraObservationRec
                     boundAnalysis = analysis
                     boundWidth = view.width
                     boundHeight = view.height
-                    viewportRetryCount = 0
+                    retryBudget.reset()
                     pendingRetry?.let { mainHandler.removeCallbacks(it) }
                     pendingRetry = null
                     keypointFrame = null
                     cameraError = null
                 } catch (_: Exception) {
+                    // Never retain a stale successful-binding marker after failed rebind.
+                    boundPreview = null
+                    boundAnalysis = null
+                    boundWidth = 0
+                    boundHeight = 0
                     activeCameraId = null
+                    analyzer.setBoundCameraId(null)
+                    diagnostics.cameraBound(null)
                     keypointFrame = null
                     cameraError = "Nie udało się uruchomić kamery."
+                    scheduleRetry()
                 }
             }
+            retryBinding = ::bindCamera
 
             val layoutListener = View.OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
                 if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
