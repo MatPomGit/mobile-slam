@@ -20,4 +20,4 @@ Main HEAD: `6cb44c4a88c15fa5fd8d42d9e174516f54360c65` (merged PR #42). Current A
 Repeated failures may represent missing permission or missing hardware: retries are strictly bounded; the UI retains a Polish error. Rebind after navigation, permission revocation, rotation and sustained session still require Samsung SM-S938B or equivalent physical-device acceptance. No hardware PASS is inferred from CI.
 
 ## Status
-IN_PROGRESS; implementation and exact-head CI pending.
+IN_PROGRESS; scoped code, JVM retry-budget tests, README and progress notes committed on feature branch. Exact-head CI and physical device acceptance pending.
