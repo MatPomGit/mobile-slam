@@ -23,6 +23,9 @@
 
 ## Changelog
 
+- 2026-11-21 — Stage 04/12 candidate: stale CameraX binding references are cleared after detach/rebind failures and transient exceptions consume a bounded retry budget (12 attempts, 250 ms). Added deterministic JVM retry-budget tests. Hardware lifecycle acceptance #4/#5 is still open; this branch requires exact-head CI before integration.
+
+
 - 2026-11-05 — PR #32 chessboard photo-based camera calibration and versioned local profile JSON merged at aabb221e. Exact-head Android CI #42123629066 PASS; physical calibration and CameraX-optics equivalence still require real-device acceptance in #9.
 
 
